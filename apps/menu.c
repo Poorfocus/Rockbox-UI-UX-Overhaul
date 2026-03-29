@@ -402,6 +402,14 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
     int old_audio_status = audio_status();
 
+    /* Plugins run as ACTIVITY_PLUGIN, but SBS themes typically exclude
+     * that activity from sub-menu styling (%Lb, header viewports).
+     * Temporarily switch to ACTIVITY_CONTEXTMENU so the SBS renders
+     * its full menu chrome for plugin menus. */
+    bool plugin_activity = (get_current_activity() == ACTIVITY_PLUGIN);
+    if (plugin_activity)
+        push_current_activity(ACTIVITY_CONTEXTMENU);
+
 #ifdef HAVE_TOUCHSCREEN
     /* plugins possibly have grid mode active. force global settings in lists */
     enum touchscreen_mode tsm = touchscreen_get_mode();
@@ -800,6 +808,9 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         *start_selected = get_menu_selection(
                             gui_synclist_get_sel_pos(&lists), menu);
     }
+
+    if (plugin_activity)
+        pop_current_activity();
 
     FOR_NB_SCREENS(i)
     {

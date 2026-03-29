@@ -410,6 +410,10 @@ static void do_tags_in_hidden_conditional(struct skin_element* branch,
             {
                 data->peak_meter_enabled = false;
             }
+            else if (token->type == SKIN_TOKEN_UIVIEWPORT_ENABLE)
+            {
+                sb_set_info_vp(gwps->display->screen_type, VP_DEFAULT_LABEL);
+            }
             else if (token->type == SKIN_TOKEN_VIEWPORT_ENABLE)
             {
                 char *label = SKINOFFSETTOPTR(skin_buffer, token->value.data);
@@ -443,6 +447,10 @@ static void do_tags_in_hidden_conditional(struct skin_element* branch,
                             }
 
                             gwps->display->set_viewport_ex(&skin_viewport->vp, VP_FLAG_VP_SET_CLEAN);
+#if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
+                            skin_viewport->vp.bg_pattern =
+                                dynamic_colors_resolve(skin_viewport->dc_orig_bg);
+#endif
                             gwps->display->clear_viewport();
                             gwps->display->set_viewport_ex(&info->skin_vp->vp, VP_FLAG_VP_SET_CLEAN);
 
