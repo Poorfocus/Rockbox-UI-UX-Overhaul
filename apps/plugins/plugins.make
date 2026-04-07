@@ -74,6 +74,14 @@ OTHER_INC += -I$(APPSDIR)/plugins -I$(APPSDIR)/plugins/lib
 # special compile flags for plugins:
 PLUGINFLAGS = -I$(APPSDIR)/plugins -DPLUGIN $(CFLAGS)
 
+PLUGIN_COMPILE_GENERATED_HEADERS := $(BUILDDIR)/sysfont.h \
+	$(BUILDDIR)/lang/lang.h $(BUILDDIR)/lang_enum.h \
+	$(BUILDDIR)/lang/max_language_size.h \
+	$(BUILDDIR)/apps/core_asmdefs.h \
+	$(BUILDDIR)/rbversion.h \
+	$(BMPHFILES) \
+	$(PBMPHFILES)
+
 # single-file plugins depend on their respective .o
 $(ROCKS1): $(BUILDDIR)/%.rock: $(BUILDDIR)/%.o
 
@@ -96,6 +104,8 @@ $(OVERLAYREF_LDS): $(PLUGIN_LDS)
 
 $(BUILDDIR)/credits.raw credits.raw: $(DOCSDIR)/CREDITS
 	$(call PRINTS,Create credits.raw)perl $(APPSDIR)/plugins/credits.pl < $< > $(BUILDDIR)/$(@F)
+
+$(BUILDDIR)/apps/plugins/credits.o: $(BUILDDIR)/credits.raw
 
 $(BUILDDIR)/apps/plugins/open_plugins.opx:
 	$(call PRINTS,MK open_plugins.opx) touch $< $(BUILDDIR)/apps/plugins/open_plugins.opx
@@ -120,7 +130,7 @@ ACTION_REQ := $(addprefix $(ROOT_PLUGINSLIB_DIR)/,action_helper.pl action_helper
 				$(BUILD_PLUGINSLIB_DIR)/pluginlib_actions.o
 
 # special rule for generating and compiling action_helper
-$(BUILD_PLUGINSLIB_DIR)/action_helper.o: $(ACTION_REQ)
+$(BUILD_PLUGINSLIB_DIR)/action_helper.o: $(ACTION_REQ) $(PLUGIN_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,GEN $(@F))$(CC) $(PLUGINFLAGS) $(INCLUDES) -E -P \
 		$(ROOT_PLUGINSLIB_DIR)/pluginlib_actions.h - < /dev/null | $< > $(basename $@).c
@@ -132,7 +142,7 @@ BUTTON_REQ := $(addprefix $(ROOT_PLUGINSLIB_DIR)/,button_helper.pl button_helper
 				$(BUILD_PLUGINSLIB_DIR)/action_helper.o
 
 # special rule for generating and compiling button_helper
-$(BUILD_PLUGINSLIB_DIR)/button_helper.o: $(BUTTON_REQ) $(ROOTDIR)/firmware/export/button.h
+$(BUILD_PLUGINSLIB_DIR)/button_helper.o: $(BUTTON_REQ) $(ROOTDIR)/firmware/export/button.h $(PLUGIN_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,GEN $(@F))$(CC) $(PLUGINFLAGS) $(INCLUDES) -dM -E -P \
 		$(addprefix -include ,button-target.h button.h) - < /dev/null | $< > $(basename $@).c
@@ -140,12 +150,12 @@ $(BUILD_PLUGINSLIB_DIR)/button_helper.o: $(BUTTON_REQ) $(ROOTDIR)/firmware/expor
 		$(PLUGINLIBFLAGS) -c $(basename $@).c -o $@
 
 # special pattern rule for compiling plugin lib (with function and data sections)
-$(BUILD_PLUGINSLIB_DIR)/%.o: $(ROOT_PLUGINSLIB_DIR)/%.c
+$(BUILD_PLUGINSLIB_DIR)/%.o: $(ROOT_PLUGINSLIB_DIR)/%.c $(PLUGIN_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,CC $(subst $(ROOTDIR)/,,$<))$(CC) -I$(dir $<) $(PLUGINLIBFLAGS) -c $< -o $@
 
 # special pattern rule for compiling plugins with extra flags
-$(BUILDDIR)/apps/plugins/%.o: $(ROOTDIR)/apps/plugins/%.c
+$(BUILDDIR)/apps/plugins/%.o: $(ROOTDIR)/apps/plugins/%.c $(PLUGIN_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,CC $(subst $(ROOTDIR)/,,$<))$(CC) -I$(dir $<) $(PLUGINFLAGS) -c $< -o $@
 
@@ -165,6 +175,7 @@ ifdef USE_LTO
 endif
 
 $(BUILDDIR)/%.rock:
+	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,LD $(@F))$(CC) $(PLUGINFLAGS) -o $(BUILDDIR)/$*.elf \
 		$(filter %.o, $^) \
 		$(filter %.a, $+) \
@@ -175,6 +186,7 @@ $(BUILDDIR)/apps/plugins/%.lua: $(ROOTDIR)/apps/plugins/%.lua
 	$(call PRINTS,CP $(subst $(ROOTDIR)/,,$<))cp $< $(BUILDDIR)/apps/plugins/
 
 $(BUILDDIR)/%.refmap: $(APPSDIR)/plugin.h $(OVERLAYREF_LDS) $(PLUGIN_LIBS) $(PLUGIN_CRT0)
+	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,LD $(@F))$(CC) $(PLUGINFLAGS) -o /dev/null \
 		$(filter %.o, $^) \
 		$(filter %.a, $+) \

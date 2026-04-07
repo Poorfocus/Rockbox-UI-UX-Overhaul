@@ -321,3 +321,13 @@ __pycache__
 
 # /utils/time-sync/
 /utils/time-sync/time-sync
+
+# Apple2026 local workflow (code-only commit safety)
+/NUL
+/Apple Fonts/
+/Apple Fonts/Generated FNT/
+/Imported Reference Themes/
+/Sample Music Folder with Library Structure/
+/Sourced Icons/
+/screenshots/
+/Pasted markdown (3).md

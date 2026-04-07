@@ -243,6 +243,13 @@ clean::
 ifeq (,$(findstring bootloader,$(APPSDIR)))
 # not bootloader
 
+CORE_COMPILE_GENERATED_HEADERS := $(BUILDDIR)/sysfont.h \
+	$(BUILDDIR)/lang/lang.h $(BUILDDIR)/lang_enum.h \
+	$(BUILDDIR)/lang/max_language_size.h \
+	$(BUILDDIR)/apps/core_asmdefs.h \
+	$(BUILDDIR)/rbversion.h \
+	$(BMPHFILES) \
+	$(PBMPHFILES)
 OBJ += $(LANG_O)
 
 ifndef APP_TYPE
@@ -482,11 +489,11 @@ help:
 ### general compile rules:
 
 # when source and object are in different locations (normal):
-$(BUILDDIR)/%.o: $(ROOTDIR)/%.c
+$(BUILDDIR)/%.o: $(ROOTDIR)/%.c $(CORE_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,CC $(subst $(ROOTDIR)/,,$<))$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILDDIR)/%.o: $(ROOTDIR)/%.S
+$(BUILDDIR)/%.o: $(ROOTDIR)/%.S $(CORE_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,CC $(subst $(ROOTDIR)/,,$<))$(CC) $(CFLAGS) -c $< -o $@
 
@@ -497,11 +504,11 @@ $(BUILDDIR)/%_asmdefs.h: $(ROOTDIR)/%_asmdefs.c
 	$(call asmdefs2file,$<,$@)
 
 # when source and object are both in BUILDDIR (generated code):
-%.o: %.c
+%.o: %.c $(CORE_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,CC $(subst $(ROOTDIR)/,,$<))$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.S
+%.o: %.S $(CORE_COMPILE_GENERATED_HEADERS)
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,CC $(subst $(ROOTDIR)/,,$<))$(CC) $(CFLAGS) -c $< -o $@
 

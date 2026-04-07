@@ -165,10 +165,20 @@ sub normalize
     return $in;
 }
 
+sub trim_value
+{
+    my $v = $_[0];
+    $v = '' unless defined($v);
+    $v =~ s/^\s+//;
+    $v =~ s/\s+$//;
+    return $v;
+}
+
 sub copybackdrop
 {
     #copy the backdrop file into the build dir
-    if ($backdrop ne '') {
+    $backdrop = trim_value($backdrop);
+    if ($backdrop ne '' && $backdrop ne '-') {
         my $dst = normalize($backdrop);
         system("cp $ROOT/$backdrop $tempdir/$dst");
     }
@@ -176,23 +186,29 @@ sub copybackdrop
 
 sub copythemefont
 {
+    my $font = trim_value($_[0]);
+    return if ($font eq '' || $font eq '-');
+
     #copy the font specified by the theme
-    my $o = $_[0];
+    my $o = $font;
 
     $o =~ s/\.fnt/\.bdf/;
     mkdir "$tempdir/fonts";
-    system("$ROOT/tools/convbdf -f -o \"$tempdir/fonts/$_[0]\" \"$ROOT/fonts/$o\" ");
+    system("$ROOT/tools/convbdf -f -o \"$tempdir/fonts/$font\" \"$ROOT/fonts/$o\" ");
 }
 
 sub copythemeicon
 {
-    my $i = $_[0];
+    my $i = trim_value($_[0]);
     #copy the icon specified by the theme
-    if ($i ne "-") {
-        my $tempicon = $tempdir . "/" . $i;
-        $tempicon =~ /\/.*icons\/(.*)/i;
-        system("cp $ROOT/icons/$1 $tempicon");
-    }
+    return if ($i eq '' || $i eq '-');
+
+    my ($icon_rel) = $i =~ m{^/?icons/(.+)$}i;
+    return if (!defined($icon_rel) || $icon_rel eq '' || $icon_rel eq '-');
+
+    my $tempicon = "$tempdir/icons/$icon_rel";
+    $tempicon =~ s{//+}{/}g;
+    system("cp $ROOT/icons/$icon_rel $tempicon");
 }
 
 sub uniq {
