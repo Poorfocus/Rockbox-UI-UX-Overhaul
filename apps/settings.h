@@ -339,6 +339,17 @@ const char* setting_get_cfgvals(const struct settings_list *setting);
 
 /** global_settings and global_status struct definitions **/
 
+/* Apple2026: where playback was started — hierarchical WPS browse return */
+enum playback_source {
+    PLAYBACK_SOURCE_NONE = 0,
+    PLAYBACK_SOURCE_PICTUREFLOW,
+    PLAYBACK_SOURCE_MUSICLIB,
+    PLAYBACK_SOURCE_FILEBROWSER,
+    PLAYBACK_SOURCE_DATABASE,
+    PLAYBACK_SOURCE_PLAYLIST_BROWSER,
+    PLAYBACK_SOURCE_PLAYLIST_VIEWER,
+};
+
 struct system_status
 {
     int volume;     /* audio output volume in decibels range depends on the dac */
@@ -365,6 +376,8 @@ struct system_status
     int font_id[NB_SCREENS]; /* font id of the settings font for each screen */
 
     bool resume_modified; /* playlist is modified (=> warn before erase) */
+
+    signed char playback_source; /* enum playback_source; RAM session state */
 };
 
 struct user_settings
@@ -950,5 +963,7 @@ struct user_settings
 extern struct user_settings global_settings;
 /* global status */
 extern struct system_status global_status;
+
+void playback_source_set(enum playback_source src);
 
 #endif /* __SETTINGS_H__ */

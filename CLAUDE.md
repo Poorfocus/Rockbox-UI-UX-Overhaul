@@ -15,46 +15,11 @@ This tree is a custom build for **iPod Classic 6G/7G** and **iPod Video 5G/5.5G*
 
 ## Build Commands
 
-Rockbox requires out-of-tree builds. Cross-compiler toolchains are built via `tools/rockboxdev.sh`.
+**All build instructions live in `BUILD.md`** (single source of truth): Windows PowerShell wrappers, incremental flags, `make` targets, `configure` reference, env vars, troubleshooting, WSL fallback, non-Windows `build-*.sh`, and release packaging.
 
-**Environment note:** `brew` and `sudo` are not available in this session. If a build dependency is missing, ask the user to install it manually.
+Rockbox uses out-of-tree builds; cross-compiler toolchains can be built with `tools/rockboxdev.sh` (also noted in `BUILD.md`).
 
-```bash
-# Hardware builds (clean) — output in build-hw-<target>/
-./build-hw.sh                # iPod Classic 6G (default)
-./build-hw.sh 5g             # iPod Video 5G
-./build-hw.sh ipod6g         # explicit target name
-./build-hw.sh ipodvideo      # explicit target name
-
-# Incremental rebuild
-cd build-hw-ipod6g && make -j$(sysctl -n hw.ncpu) && make zip
-cd build-hw-ipodvideo && make -j$(sysctl -n hw.ncpu) && make zip
-
-# Simulator build (6G)
-./build-sim.sh               # configure if needed + make + make install
-# Or incrementally:
-cd build-sim && make -j$(sysctl -n hw.ncpu)
-cd build-sim && ./rockboxui  # run simulator (uses simdisk/ as virtual FS)
-
-# Non-interactive configure (reference)
-../tools/configure --target=ipod6g --type=n     # 6G hardware
-../tools/configure --target=ipodvideo --type=n  # 5G hardware
-../tools/configure --target=ipod6g --type=s     # simulator
-
-# Other make targets
-make rocks                  # plugins only
-make codecs                 # codecs only
-make bin                    # binary only
-make zip                    # create deployment zip
-make reconf                 # reconfigure after tools/configure changes
-make clean / make veryclean
-```
-
-**Configure build types:** (N)ormal, (S)imulator, (B)ootloader, (A)dvanced, (C)heckWPS, (D)atabase tool, (W)arble codec tool
-
-**Sanitizers:** `--with-address-sanitizer` and `--with-ubsan` flags to configure.
-
-**Default CFLAGS:** `-W -Wall -Wextra -Wundef -Os -nostdlib -ffreestanding -Wstrict-prototypes -pipe -std=gnu99`
+**Environment note:** `brew` and `sudo` are not available in this session. If a build dependency is missing, ask the user to install it manually (see `BUILD.md` and `MASTER.md` §8).
 
 ## Testing
 
@@ -134,30 +99,7 @@ Multiple backends: native assembler threads (ARM, m68k, MIPS) with cooperative m
 
 ## Release Workflow
 
-To build, tag, and publish a release on GitHub:
-
-```bash
-# 1. Build hardware release zips
-./build-hw.sh          # 6G
-./build-hw.sh 5g       # 5G
-
-# 2. Commit, tag, and push
-git add <files>
-git commit -m "vX.Y: description"
-git tag vX.Y
-git push origin master
-git push origin vX.Y
-
-# 3. Create GitHub release with both zips
-gh release create vX.Y \
-    build-hw-ipod6g/rockbox.zip#rockbox-ipod6g.zip \
-    build-hw-ipodvideo/rockbox.zip#rockbox-ipodvideo-5g.zip \
-    --repo nuxcodes/rockbox -t "vX.Y" \
-    -F release-notes.md
-# Add -p for prerelease/alpha/beta tags
-```
-
-Releases are published at `https://github.com/nuxcodes/rockpod/releases`.
+See **`BUILD.md`** (section “Release packaging (GitHub)”) for `build-hw.sh`, tagging, and `gh release create`. Releases: `https://github.com/nuxcodes/rockpod/releases`.
 
 ## Code Review
 

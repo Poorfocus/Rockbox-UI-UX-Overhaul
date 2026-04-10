@@ -32,6 +32,7 @@
 #include "strptokspn_r.h"
 #include "scrollbar.h"
 #include "font.h"
+#include "apple2026_shell.h"
 #ifndef BOOTLOADER
 #include "misc.h" /* get_current_activity */
 #endif
@@ -40,7 +41,7 @@ static long progress_next_tick, talked_tick;
 
 #define MAXLINES  (LCD_HEIGHT/6)
 #define MAXBUFFER 512
-#define RECT_SPACING 3
+#define RECT_SPACING 8
 #define SPLASH_MEMORY_INTERVAL (HZ)
 
 static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
@@ -182,7 +183,12 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
         vp->drawmode = DRMODE_FG;
         /* can't do vp->fg_pattern here, since set_foreground does a bit more on
          * greyscale */
-        screen->set_foreground(broken ? SCREEN_COLOR_TO_NATIVE(screen, LCD_LIGHTGRAY) :
+        screen->set_foreground(broken ?
+#if ROCKPOD_APPLE2026_IPOD
+                               SCREEN_COLOR_TO_NATIVE(screen, A26_SPLASH_BROKEN_FILL) :
+#else
+                               SCREEN_COLOR_TO_NATIVE(screen, LCD_LIGHTGRAY) :
+#endif
                                bg);     /* gray as fallback for broken themes */
     }
     else
@@ -195,13 +201,28 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
     if (screen->depth > 1)
         /* can't do vp->fg_pattern here, since set_foreground does a bit more on
          * greyscale */
-        screen->set_foreground(broken ? SCREEN_COLOR_TO_NATIVE(screen, LCD_BLACK) :
+        screen->set_foreground(broken ?
+#if ROCKPOD_APPLE2026_IPOD
+                               SCREEN_COLOR_TO_NATIVE(screen, A26_PROGRESS_FILL) :
+#else
+                               SCREEN_COLOR_TO_NATIVE(screen, LCD_BLACK) :
+#endif
                                fg);     /* black as fallback for broken themes */
     else
 #endif
         vp->drawmode = DRMODE_SOLID;
 
-    screen->draw_border_viewport();
+#if ROCKPOD_APPLE2026_IPOD
+    if (screen->depth > 1)
+    {
+        unsigned splash_text_fg = screen->get_foreground();
+        screen->set_foreground(SCREEN_COLOR_TO_NATIVE(screen, A26_SHELL_RAIL));
+        screen->draw_border_viewport();
+        screen->set_foreground(splash_text_fg);
+    }
+    else
+#endif
+        screen->draw_border_viewport();
 
     /* print the message to screen */
     for(i = 0, y = RECT_SPACING; i <= line; i++, y+= chr_h)
@@ -218,9 +239,15 @@ void splashf(int ticks, const char *fmt, ...)
     /* fmt may be a so called virtual pointer. See settings.h. */
     long id;
     if((id = P2ID((const unsigned char*)fmt)) >= 0)
-        /* If fmt specifies a voicefont ID, and voice menus are
-           enabled, then speak it. */
-        cond_talk_ids_fq(id);
+    {
+        /* If fmt specifies a voicefont ID and voice menus are enabled,
+           speak it without relying on vararg macros. */
+        if (global_settings.talk_menu)
+        {
+            talk_idarray((long[]){id, TALK_FINAL_ID}, false);
+            talk_force_enqueue_next();
+        }
+    }
 
     /* If fmt is a lang ID then get the corresponding string (which
        still might contain % place holders). */
@@ -272,8 +299,11 @@ void splash_progress(int current, int total, const char *fmt, ...)
         TIME_AFTER(current_tick, talked_tick + HZ*5))
     {
         talked_tick = current_tick;
-        talk_ids(false, LANG_LOADING_PERCENT,
-                 TALK_ID(current * 100 / total, UNIT_PERCENT));
+        talk_idarray((long[]){
+            LANG_LOADING_PERCENT,
+            TALK_ID(current * 100 / total, UNIT_PERCENT),
+            TALK_FINAL_ID
+        }, false);
     }
 
     /* If fmt is a lang ID then get the corresponding string (which
@@ -289,17 +319,34 @@ void splash_progress(int current, int total, const char *fmt, ...)
         va_start(ap, fmt);
         if (splash_internal(screen, fmt, ap, &vp, 1))
         {
-            int size = screen->getcharheight();
-            int x = RECT_SPACING;
-            int y = vp.height - size - RECT_SPACING;
-            int w = vp.width - RECT_SPACING * 2;
-            int h = size;
-#ifdef HAVE_LCD_COLOR
-            const int sb_flags = HORIZONTAL | FOREGROUND;
+            int x = RECT_SPACING + 4;
+            int w = vp.width - (RECT_SPACING + 4) * 2;
+            int h = 2;
+            int y = vp.height - h - RECT_SPACING;
+            if (w < 24)
+                w = 24;
+
+#if LCD_DEPTH > 1
+            if (screen->depth > 1)
+            {
+                unsigned old_fg = screen->get_foreground();
+#if ROCKPOD_APPLE2026_IPOD
+                screen->set_foreground(SCREEN_COLOR_TO_NATIVE(screen, A26_PROGRESS_TRACK));
+                screen->fillrect(x, y, w, h);
+                screen->set_foreground(SCREEN_COLOR_TO_NATIVE(screen, A26_PROGRESS_FILL));
 #else
-            const int sb_flags = HORIZONTAL;
+                screen->set_foreground(SCREEN_COLOR_TO_NATIVE(screen, LCD_LIGHTGRAY));
+                screen->fillrect(x, y, w, h);
+                screen->set_foreground(SCREEN_COLOR_TO_NATIVE(screen, LCD_BLACK));
 #endif
-            gui_scrollbar_draw(screen, x, y, w, h, total, 0, current, sb_flags);
+                screen->fillrect(x, y, (total > 0) ? (current * w / total) : 0, h);
+                screen->set_foreground(old_fg);
+            }
+            else
+#endif
+            {
+                screen->fillrect(x, y, w, h);
+            }
 
             screen->update_viewport();
         }

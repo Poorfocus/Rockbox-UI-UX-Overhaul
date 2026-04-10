@@ -41,6 +41,19 @@
 #include "appevents.h"
 #include "statusbar-skinned.h"
 #include "skin_engine/skin_albumart_color.h"
+#include "apple2026_shell.h"
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#include "root_menu.h"
+/* Dense list font (16pt Regular) — loaded once on first use.
+ * Matches Cover Flow tracklist and album-level file browser density. */
+int apple2026_dense_font_id = -1;
+void apple2026_ensure_dense_font(void)
+{
+    if (apple2026_dense_font_id < 0)
+        apple2026_dense_font_id =
+            font_load(FONT_DIR "/16-SFProText-Regular.fnt");
+}
+#endif
 
 /* The minimum number of pending button events in queue before starting
  * to limit list drawing interval.
@@ -101,9 +114,17 @@ static int list_nb_lines(struct gui_synclist *list, enum screen_type screen)
 
 bool list_display_title(struct gui_synclist *list, enum screen_type screen)
 {
+#if ROCKPOD_APPLE2026_IPOD
+    /* Apple2026 uses SBS title/large-title composition only.
+     * Never reserve an in-list title row; avoids first-entry phantom top gap. */
+    (void)list;
+    (void)screen;
+    return false;
+#else
     return list->title != NULL &&
         !sb_set_title_text(list->title, list->title_icon, screen) &&
         list_nb_lines(list, screen) > 2;
+#endif
 }
 
 int list_get_nb_lines(struct gui_synclist *list, enum screen_type screen)
@@ -130,6 +151,31 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
         list->line_height[screen] = line_height + global_settings.list_line_padding;
 #else
     list->line_height[screen] = line_height;
+#endif
+#if ROCKPOD_APPLE2026_IPOD
+    if (rockpod_list_font_tier == ROCKPOD_LIST_FONT_DENSE)
+    {
+        /* Dense tier: switch to 16pt Regular for track/song lists.
+         * Row floor 28px — allows more visible track rows while still
+         * providing adequate clearance for 20px font + separator. */
+        apple2026_ensure_dense_font();
+        if (apple2026_dense_font_id >= 0)
+        {
+            struct font *ft = font_get(apple2026_dense_font_id);
+            if (ft)
+                line_height = ft->height;
+        }
+        list->line_height[screen] = line_height;
+        if (list->line_height[screen] < 28)
+            list->line_height[screen] = 28;
+    }
+    else
+    {
+        /* Normal tier: 18pt Regular, 30px floor — reduced from 32px to
+         * allow one additional visible row when mini-player is active. */
+        if (list->line_height[screen] < 30)
+            list->line_height[screen] = 30;
+    }
 #endif
 }
 

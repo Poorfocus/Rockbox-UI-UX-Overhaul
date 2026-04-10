@@ -366,6 +366,38 @@ static void style_line(struct screen *display,
         case STYLE_NONE:
             break;
     }
+
+#if ROCKPOD_APPLE2026_IPOD
+    if ((style & _STYLE_DECO_MASK) == STYLE_COLORBAR ||
+        (style & _STYLE_DECO_MASK) == STYLE_INVERT ||
+        (style & _STYLE_DECO_MASK) == STYLE_GRADIENT)
+    {
+        /* r=4 quarter-circle mask: erase outer pixels to round the bar.
+         * Row offsets from corner: {row, pixels_to_erase}
+         *   0 -> 4,  1 -> 2,  2 -> 1,  3 -> 1   */
+        static const unsigned char corner_r4[] = { 4, 2, 1, 1 };
+        int bx = x;
+        int bw = width - x;
+        int by = y;
+        int bh = bar_height;
+        unsigned bg = display->get_background();
+
+        display->set_drawmode(DRMODE_FG);
+        display->set_foreground(bg);
+        for (int r = 0; r < 4; r++)
+        {
+            int n = corner_r4[r];
+            /* top-left */
+            display->fillrect(bx, by + r, n, 1);
+            /* top-right */
+            display->fillrect(bx + bw - n, by + r, n, 1);
+            /* bottom-left */
+            display->fillrect(bx, by + bh - 1 - r, n, 1);
+            /* bottom-right */
+            display->fillrect(bx + bw - n, by + bh - 1 - r, n, 1);
+        }
+    }
+#endif
 #if (LCD_DEPTH > 1 || (defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1))
     /* prepare fg and bg colors for text drawing, be careful to not
      * override any previously set colors unless mandated by the style */

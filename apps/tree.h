@@ -44,6 +44,7 @@ struct entry {
 #define BROWSE_RUNFILE          0x0004  /* do ft_open() on the file instead of browsing */
 #define BROWSE_DIRFILTER        0x0080  /* override global_settings.dirfilter with browse_context.dirfilter */
 #define BROWSE_SELECTED         0x0100  /* this bit is set if user selected item */
+#define BROWSE_APPLE2026_MUSICLIB 0x0200  /* main-menu Music (GO_TO_MUSICLIB); not Storage/Files */
 
 
 struct tree_context;

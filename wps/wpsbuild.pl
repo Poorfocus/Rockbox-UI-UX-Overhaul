@@ -11,6 +11,7 @@
 use strict;
 use Getopt::Long qw(:config pass_through);	# pass_through so not confused by -DTYPE_STUFF
 use IPC::Open2;
+use File::Copy qw(copy);
 
 my $ROOT="..";
 my $wpsdir;
@@ -73,6 +74,8 @@ my $lineselecttextcolor;
 my $filetylecolor;
 my $listviewport;
 my $remotelistviewport;
+my $scrollbar;
+my $scrollbarwidth;
 
 # LCD sizes
 my ($main_height, $main_width, $main_depth);
@@ -192,9 +195,18 @@ sub copythemefont
     #copy the font specified by the theme
     my $o = $font;
 
-    $o =~ s/\.fnt/\.bdf/;
     mkdir "$tempdir/fonts";
-    system("$ROOT/tools/convbdf -f -o \"$tempdir/fonts/$font\" \"$ROOT/fonts/$o\" ");
+    $o =~ s/\.fnt/\.bdf/;
+    if (-e "$ROOT/fonts/$o") {
+        system("$ROOT/tools/convbdf -f -o \"$tempdir/fonts/$font\" \"$ROOT/fonts/$o\" ");
+    }
+    elsif (-e "$ROOT/fonts/$font") {
+        # Prebuilt .fnt (e.g. Apple2026 SF fonts) with no matching .bdf in tree
+        copy("$ROOT/fonts/$font", "$tempdir/fonts/$font");
+    }
+    else {
+        print STDERR "wpsbuild warning: font not found for theme (missing $ROOT/fonts/$o and $ROOT/fonts/$font)\n";
+    }
 }
 
 sub copythemeicon
@@ -235,6 +247,7 @@ sub copywps
                      "rsbs", $rsbs,
                      "rfms", $rfms);
     my @filelist;
+    my @fontlist;
     my $file;
 
     if($wpslist =~ /(.*)\/WPSLIST/) {
@@ -248,8 +261,17 @@ sub copywps
             open(SKIN, "$dir/$file");
             while (<SKIN>) {
                 $filelist[$#filelist + 1] = $1 if (/[\(,]([^,]*?.bmp)[\),]/);
+                # %Fl(slot, name.fnt) — package extra fonts used by the skin
+                while (/\%Fl\s*\(\s*\d+\s*,\s*([^)]+)\)/g) {
+                    my $fn = trim_value($1);
+                    $fontlist[$#fontlist + 1] = $fn if ($fn =~ /\.fnt\z/i);
+                }
             }
             close(SKIN);
+        }
+
+        foreach my $fn (uniq(@fontlist)) {
+            copythemefont($fn);
         }
 
         if ($#filelist >= 0) {
@@ -320,6 +342,8 @@ MOO
     push @out, "viewers iconset: $viewericon\n" if (defined($viewericon));
     push @out, "show icons: $showicons\n"       if (defined($viewericon) && defined($showicons));
     push @out, "ui viewport: $listviewport\n"   if (defined($listviewport));
+    push @out, "scrollbar: $scrollbar\n"        if (defined($scrollbar));
+    push @out, "scrollbar width: $scrollbarwidth\n" if (defined($scrollbarwidth));
 
     if ($has_remote) {
         push @out, "remote font: $remotefont\n"                  if (defined($remotefont));
@@ -469,6 +493,8 @@ while(<WPS>) {
         undef $filetylecolor;
         undef $listviewport;
         undef $remotelistviewport;
+        undef $scrollbar;
+        undef $scrollbarwidth;
     }
     elsif($l =~ /^Name: *(.*)/i) {
         $theme = $1;
@@ -557,6 +583,12 @@ while(<WPS>) {
             }
             elsif($_ = check_res_feature($l, "ui viewport")) {
                 $listviewport = $_;
+            }
+            elsif($l =~ /^scrollbar: *(.*)/i) {
+                $scrollbar = $1;
+            }
+            elsif($l =~ /^scrollbar width: *(.*)/i) {
+                $scrollbarwidth = $1;
             }
         }
     }

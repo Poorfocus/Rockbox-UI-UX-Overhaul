@@ -137,7 +137,15 @@ app_set_lcd_size () {
 }
 
 findarmgcc() {
-  prefixtools arm-elf-eabi-
+  if [ -n "$CROSS_COMPILE" ]; then
+    prefixtools "$CROSS_COMPILE"
+  elif which arm-elf-eabi-gcc >/dev/null 2>&1; then
+    prefixtools arm-elf-eabi-
+  elif which arm-none-eabi-gcc >/dev/null 2>&1; then
+    prefixtools arm-none-eabi-
+  else
+    prefixtools arm-elf-eabi-
+  fi
   gccchoice="9.5.0"
 }
 

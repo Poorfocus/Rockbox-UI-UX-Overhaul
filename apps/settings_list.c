@@ -320,9 +320,16 @@ static const int backlight_fade[] = {0,100,200,300,500,1000,2000,3000,5000,10000
 static const char graphic_numeric[] = "graphic,numeric";
 
 /* Default theme settings */
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+/* RockPod: iPod Video (5) / Classic 6G/7G (71) — Apple2026 flagship shell */
+#define DEFAULT_WPSNAME  "Apple2026"
+#define DEFAULT_SBSNAME  "Apple2026"
+#define DEFAULT_FMS_NAME "cabbiev2"
+#else
 #define DEFAULT_WPSNAME  "cabbiev2"
 #define DEFAULT_SBSNAME  "-"
 #define DEFAULT_FMS_NAME "cabbiev2"
+#endif
 
 #if LCD_HEIGHT <= 64
   #define DEFAULT_FONT_HEIGHT 8
@@ -353,6 +360,10 @@ static const char graphic_numeric[] = "graphic,numeric";
 #define DEFAULT_GLYPHS 250
 #define MIN_GLYPHS 50
 #define MAX_GLYPHS 65540
+
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#define DEFAULT_FONTNAME "18-SFProText-Regular"
+#endif
 
 #ifndef DEFAULT_FONTNAME
 /* ugly expansion needed */
@@ -386,6 +397,13 @@ static const char graphic_numeric[] = "graphic,numeric";
   #define DEFAULT_VIEWERS_ICONSET ""
 #endif
 
+#if defined(HAVE_LCD_COLOR) && ((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71))
+#undef DEFAULT_ICONSET
+#undef DEFAULT_VIEWERS_ICONSET
+#define DEFAULT_ICONSET "Apple2026Icons"
+#define DEFAULT_VIEWERS_ICONSET "viewers.6x8x16"
+#endif
+
 #ifdef HAVE_REMOTE_LCD
 #if LCD_REMOTE_HEIGHT <= 64
   #define DEFAULT_REMOTE_FONTNAME "08-Rockfont"
@@ -394,14 +412,27 @@ static const char graphic_numeric[] = "graphic,numeric";
 #endif
 #endif /* HAVE_REMOTE_LCD */
 
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#define DEFAULT_THEME_FOREGROUND LCD_RGBPACK(0x00, 0x00, 0x00)
+#define DEFAULT_THEME_BACKGROUND LCD_RGBPACK(0xff, 0xff, 0xff)
+#define DEFAULT_THEME_SELECTOR_START LCD_RGBPACK(0xd0, 0xd0, 0xd4)
+#define DEFAULT_THEME_SELECTOR_END LCD_RGBPACK(0xd0, 0xd0, 0xd4)
+#define DEFAULT_THEME_SELECTOR_TEXT LCD_RGBPACK(0x00, 0x00, 0x00)
+#define DEFAULT_THEME_SEPARATOR LCD_RGBPACK(0xc7, 0xc7, 0xcc)
+#else
 #define DEFAULT_THEME_FOREGROUND LCD_RGBPACK(0xce, 0xcf, 0xce)
 #define DEFAULT_THEME_BACKGROUND LCD_RGBPACK(0x00, 0x00, 0x00)
 #define DEFAULT_THEME_SELECTOR_START LCD_RGBPACK(0xff, 0xeb, 0x9c)
 #define DEFAULT_THEME_SELECTOR_END LCD_RGBPACK(0xb5, 0x8e, 0x00)
 #define DEFAULT_THEME_SELECTOR_TEXT LCD_RGBPACK(0x00, 0x00, 0x00)
 #define DEFAULT_THEME_SEPARATOR  LCD_RGBPACK(0x80, 0x80, 0x80)
+#endif
 
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#define DEFAULT_BACKDROP "-"
+#else
 #define DEFAULT_BACKDROP    BACKDROP_DIR "/cabbiev2.bmp"
+#endif
 
 #ifdef HAVE_RECORDING
 /* these should be in the config.h files */
@@ -1199,7 +1230,14 @@ const struct settings_list settings[] = {
     CHOICE_SETTING(F_THEMESETTING|F_TEMPVAR, scrollbar,
                   LANG_SCROLL_BAR, SCROLLBAR_DEFAULT, "scrollbar","off,left,right",
                   NULL, 3, ID2P(LANG_OFF), ID2P(LANG_LEFT), ID2P(LANG_RIGHT)),
-    INT_SETTING(F_THEMESETTING, scrollbar_width, LANG_SCROLLBAR_WIDTH, 6,
+    INT_SETTING(F_THEMESETTING, scrollbar_width, LANG_SCROLLBAR_WIDTH,
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                2,
+#elif ROCKPOD_APPLE2026_IPOD
+                3,
+#else
+                6,
+#endif
                 "scrollbar width",UNIT_INT, 3, MAX(LCD_WIDTH/10,25), 1,
                 NULL, NULL, NULL),
 #ifdef HAVE_TOUCHSCREEN
@@ -1969,7 +2007,7 @@ const struct settings_list settings[] = {
                    ID2P(LANG_CODEPAGE_TRADITIONAL), ID2P(LANG_CODEPAGE_UTF8)),
 
     OFFON_SETTING(0, warnon_erase_dynplaylist, LANG_WARN_ERASEDYNPLAYLIST_MENU,
-                  true, "warn when erasing dynamic playlist",NULL),
+                  false, "warn when erasing dynamic playlist",NULL),
     OFFON_SETTING(0, keep_current_track_on_replace_playlist, LANG_KEEP_CURRENT_TRACK_ON_REPLACE,
                   true, "keep current track when replacing playlist",NULL),
     OFFON_SETTING(0, show_shuffled_adding_options, LANG_SHOW_SHUFFLED_ADDING_OPTIONS, true,
@@ -2159,6 +2197,16 @@ const struct settings_list settings[] = {
                    ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS),
                    ID2P(LANG_OPEN_PLUGIN)
                   ),
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Apple2026: SELECT from WPS opens Music library (/Music) by default. */
+    CHOICE_SETTING(0, wps_select_action, LANG_WPS_SELECT_ACTION, 3,
+                   "wps select action", "default,database,coverflow,files",
+                   NULL, 4,
+                   ID2P(LANG_PREVIOUS_SCREEN),
+                   ID2P(LANG_TAGCACHE),
+                   ID2P(LANG_COVERFLOW),
+                   ID2P(LANG_DIR_BROWSER)),
+#else
     CHOICE_SETTING(0, wps_select_action, LANG_WPS_SELECT_ACTION, 0,
                    "wps select action", "default,database,coverflow,files",
                    NULL, 4,
@@ -2166,6 +2214,7 @@ const struct settings_list settings[] = {
                    ID2P(LANG_TAGCACHE),
                    ID2P(LANG_COVERFLOW),
                    ID2P(LANG_DIR_BROWSER)),
+#endif
 #if defined(HAVE_RTC_ALARM) && \
     (defined(HAVE_RECORDING) || CONFIG_TUNER)
     {F_T_INT|F_HAS_CFGVALS, &global_settings.alarm_wake_up_screen, LANG_ALARM_WAKEUP_SCREEN,
@@ -2189,8 +2238,14 @@ const struct settings_list settings[] = {
     TEXT_SETTING(F_THEMESETTING|F_NEEDAPPLY, colors_file, "filetype colours", "-",
                      THEME_DIR "/", ".colours"),
 #ifdef HAVE_ALBUMART
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Apple2026: fixed light shell; album-art tinting fights intentional neutrals */
+    OFFON_SETTING(0, dynamic_colors, LANG_DYNAMIC_COLORS, false,
+                  "dynamic colors", NULL),
+#else
     OFFON_SETTING(0, dynamic_colors, LANG_DYNAMIC_COLORS, true,
                   "dynamic colors", NULL),
+#endif
 #endif
 #endif
 #ifdef HAVE_BUTTON_LIGHT

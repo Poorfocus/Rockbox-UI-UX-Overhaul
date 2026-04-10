@@ -804,6 +804,7 @@ MENUITEM_FUNCTION_W_PARAM(eq_browse, 0, ID2P(LANG_EQUALIZER_BROWSE),
                           browse_folder, (void*)&eqs,
                           lowlatency_callback, Icon_NOICON);
 
+/* Browse presets high for import-heavy workflows (Apple2026). */
 MAKE_MENU(equalizer_menu, ID2P(LANG_EQUALIZER), NULL, Icon_EQ,
-        &eq_enable, &eq_graphical, &eq_precut, &gain_menu,
-        &advanced_menu, &eq_save, &eq_browse, &eq_reset);
+        &eq_enable, &eq_browse, &eq_graphical, &eq_precut, &gain_menu,
+        &advanced_menu, &eq_save, &eq_reset);

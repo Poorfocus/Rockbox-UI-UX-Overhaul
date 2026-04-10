@@ -88,9 +88,22 @@ static int last_screen = GO_TO_ROOT; /* unfortunatly needed so we can resume
                                         or goto current track based on previous
                                         screen */
 
-static int previous_music = GO_TO_WPS; /* Toggles behavior of the return-to
-                                        * playback-button depending
-                                        * on FM radio */
+/* GO_TO_PREVIOUS_MUSIC (from tree/main menu PLAY / ACTION_TREE_WPS) resolves
+ * here: next_screen = previous_music. Default is GO_TO_WPS so Play opens the
+ * playback surface (Now Playing / resume flow). FM builds also use GO_TO_FM
+ * when the user last entered that screen via the root loop. */
+static int previous_music = GO_TO_WPS;
+
+/* Apple2026 bounded-stack navigation: true when WPS was entered from the root
+ * menu (the "Now Playing" item or PLAY-from-root) rather than from a content
+ * chain (Cover Flow play, Music browse-and-play, etc.).  Checked by
+ * wps_handle_browse_parent() so back-from-WPS returns to Main Menu instead
+ * of re-attaching the user to a stale playback_source chain. */
+bool wps_entered_from_root = false;
+
+/* Apple2026: two-tier list font — NORMAL (18pt) for navigational menus,
+ * DENSE (16pt) for track/song content lists.  Default to normal. */
+rockpod_list_font_tier_t rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
 
 #if (CONFIG_TUNER)
 static void rootmenu_start_playback_callback(unsigned short id, void *param)
@@ -120,6 +133,8 @@ static int browser(void* param)
     char folder[MAX_PATH] = "/";
     /* stuff needed to remember position in file browser */
     static char last_folder[MAX_PATH] = "/";
+    /* Apple2026: music library root (/Music); "/" means open default /Music */
+    static char last_music_folder[MAX_PATH] = "/";
     /* and stuff for the database browser */
 #ifdef HAVE_TAGCACHE
     static int last_db_dirlevel = 0, last_db_selection = 0, last_ft_dirlevel = 0;
@@ -168,6 +183,51 @@ static int browser(void* param)
                 if (!in_hotswap)
 #endif /*HAVE_HOTSWAP*/
                     strcpy(folder, last_folder);
+            }
+            push_current_activity(ACTIVITY_FILEBROWSER);
+        break;
+        case GO_TO_MUSICLIB:
+            filter = global_settings.dirfilter;
+            /* Apple2026: never follow the current-track path for the music
+             * library.  The file browser has that behaviour (browse_current
+             * setting), but the music library is a fixed-root curated view
+             * of /Music/.  Injecting an arbitrary track path here breaks the
+             * Apple2026 back-navigation guard in tree.c which expects currdir
+             * to always be inside /Music/.  Always resume at last_music_folder
+             * (validated below) or the library root. */
+            if (!strcmp(last_music_folder, "/") ||
+                strncmp(last_music_folder, "/Music", 6) != 0 ||
+                (last_music_folder[6] != '/' && last_music_folder[6] != '\0'))
+            {
+                /* Trailing '/' required: "/Music" parses as file "Music" in "/" */
+                strcpy(folder, "/Music/");
+            }
+            else
+            {
+#ifdef HAVE_HOTSWAP
+                bool in_hotswap = false;
+                int i;
+                for (i = 0; i < NUM_VOLUMES; i++)
+                {
+                    char vol_string[VOL_MAX_LEN + 1];
+                    if (!volume_removable(i))
+                        continue;
+                    get_volume_name(i, vol_string);
+                    if (!volume_present(i) &&
+                            (strstr(last_music_folder, vol_string)
+#ifdef HAVE_HOTSWAP_STORAGE_AS_MAIN
+                                                                || (i == 0)
+#endif
+                                                                ))
+                    {
+                        strcpy(folder, "/Music/");
+                        in_hotswap = true;
+                        break;
+                    }
+                }
+                if (!in_hotswap)
+#endif /*HAVE_HOTSWAP*/
+                    strcpy(folder, last_music_folder);
             }
             push_current_activity(ACTIVITY_FILEBROWSER);
         break;
@@ -281,8 +341,11 @@ static int browser(void* param)
 
     struct browse_context browse = {
         .dirfilter = filter,
-        .icon = Icon_NOICON,
+        .icon = ((intptr_t)param == GO_TO_MUSICLIB) ? Icon_Audio : Icon_NOICON,
         .root = folder,
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+        .flags = ((intptr_t)param == GO_TO_MUSICLIB) ? BROWSE_APPLE2026_MUSICLIB : 0u,
+#endif
     };
 
     ret_val = rockbox_browse(&browse);
@@ -294,6 +357,13 @@ static int browser(void* param)
     else
         pop_current_activity();
 
+    /* Apple2026: for the music library, a GO_TO_PREVIOUS return means the
+     * browse exited abnormally (e.g. ft_load failed on a stale path).
+     * Map it to GO_TO_ROOT so root_menu never uses a stale last_screen as
+     * the next destination, which could accidentally open GO_TO_FILEBROWSER. */
+    if ((intptr_t)param == GO_TO_MUSICLIB && ret_val == GO_TO_PREVIOUS)
+        ret_val = GO_TO_ROOT;
+
     switch ((intptr_t)param)
     {
         case GO_TO_FILEBROWSER:
@@ -303,6 +373,19 @@ static int browser(void* param)
             {
                 last_folder[0] = '/';
                 last_folder[1] = '\0';
+            }
+        break;
+        case GO_TO_MUSICLIB:
+            if (!get_current_file(last_music_folder, MAX_PATH) ||
+                /* Apple2026: must be a path with at least one separator (a
+                 * directory, not a bare root) AND must be inside /Music/.
+                 * An out-of-range path could cause the next Music session to
+                 * open outside /Music, defeating the back-nav guard. */
+                strncmp(last_music_folder, "/Music", 6) != 0 ||
+                (last_music_folder[6] != '/' && last_music_folder[6] != '\0'))
+            {
+                last_music_folder[0] = '/';
+                last_music_folder[1] = '\0';
             }
         break;
 #ifdef HAVE_TAGCACHE
@@ -376,6 +459,7 @@ static int wpsscrn(void* param)
         || (ret_val == GO_TO_PREVIOUS
                && (last_screen == GO_TO_MAINMENU /* Settings */
                 || last_screen == GO_TO_BROWSEPLUGINS
+                || last_screen == GO_TO_EQUALIZER
                 || last_screen == GO_TO_SYSTEM_SCREEN
                 || last_screen == GO_TO_PLAYLISTS_SCREEN)))
     {
@@ -464,6 +548,10 @@ static int pictureflow_scrn(void* param)
         case PLUGIN_USB_CONNECTED:
         case PLUGIN_ERROR:
             return GO_TO_ROOT;
+        /* Apple2026: idle Cover Flow back must land on main menu / Library, not
+         * GO_TO_PREVIOUS (which restores WPS when CF was entered from playback). */
+        case PLUGIN_OK:
+            return GO_TO_ROOT;
         default:
             return GO_TO_PREVIOUS;
     }
@@ -472,7 +560,7 @@ static int pictureflow_scrn(void* param)
 
 /* These are all static const'd from apps/menus/ *.c
    so little hack so we can use them */
-extern struct menu_item_ex
+extern const struct menu_item_ex
         file_menu,
 #ifdef HAVE_TAGCACHE
         tagcache_menu,
@@ -482,7 +570,8 @@ extern struct menu_item_ex
         plugin_menu,
         playlist_options,
         info_menu,
-        system_menu;
+        system_menu,
+        equalizer_menu;
 static const struct root_items items[] = {
     [GO_TO_FILEBROWSER] =   { browser, (void*)GO_TO_FILEBROWSER, &file_menu},
 #ifdef HAVE_TAGCACHE
@@ -510,6 +599,8 @@ static const struct root_items items[] = {
 #ifdef HAVE_TAGCACHE
     [GO_TO_PICTUREFLOW] = { pictureflow_scrn, NULL, NULL },
 #endif
+    [GO_TO_MUSICLIB] =   { browser, (void*)GO_TO_MUSICLIB, &file_menu },
+    [GO_TO_EQUALIZER] =  { miscscrn, &equalizer_menu, NULL },
 
 };
 //static const int nb_items = sizeof(items)/sizeof(*items);
@@ -521,13 +612,14 @@ static int item_callback(int action,
 MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
                         NULL, Icon_Bookmark);
 
-MENUITEM_RETURNVALUE(file_browser, ID2P(LANG_DIR_BROWSER), GO_TO_FILEBROWSER,
-                        NULL, Icon_file_view_menu);
+/* Apple2026: primary library at /Music (full-disk browse not exposed at root). */
+MENUITEM_RETURNVALUE(music_library, "Music", GO_TO_MUSICLIB,
+                        NULL, Icon_Audio);
 #ifdef HAVE_TAGCACHE
 MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_TAGCACHE), GO_TO_DBBROWSER,
-                        NULL, Icon_Audio);
+                        NULL, Icon_Config);
 MENUITEM_RETURNVALUE(pictureflow_item, "Cover Flow", GO_TO_PICTUREFLOW,
-                        NULL, Icon_Rockbox);
+                        NULL, Icon_Display_menu);
 #endif
 MENUITEM_RETURNVALUE(rocks_browser, ID2P(LANG_PLUGINS), GO_TO_BROWSEPLUGINS,
                         NULL, Icon_Plugin);
@@ -542,6 +634,8 @@ static char *get_wps_item_name(int selected_item, void * data,
 }
 MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, NULL, get_wps_item_name,
                                 NULL, NULL, Icon_Playback_menu);
+MENUITEM_RETURNVALUE(equalizer_item, ID2P(LANG_EQUALIZER), GO_TO_EQUALIZER,
+                     NULL, Icon_EQ);
 #ifdef HAVE_RECORDING
 MENUITEM_RETURNVALUE(rec, ID2P(LANG_RECORDING), GO_TO_RECSCREEN,
                         NULL, Icon_Recording);
@@ -551,7 +645,7 @@ MENUITEM_RETURNVALUE(fm, ID2P(LANG_FM_RADIO), GO_TO_FM,
                         item_callback, Icon_Radio_screen);
 #endif
 MENUITEM_RETURNVALUE(menu_, ID2P(LANG_SETTINGS), GO_TO_MAINMENU,
-                        NULL, Icon_Submenu_Entered);
+                        NULL, Icon_General_settings_menu);
 MENUITEM_RETURNVALUE(bookmarks, ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS),
                         GO_TO_RECENTBMARKS,  item_callback,
                         Icon_Bookmark);
@@ -564,19 +658,39 @@ struct menu_item_ex root_menu_;
 static struct menu_callback_with_desc root_menu_desc = {
         item_callback, ID2P(LANG_ROCKBOX_TITLE), Icon_Rockbox };
 
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+/* Apple2026: no Plugins / Shortcuts at root — keep shell music-first.
+ * Cover Flow is second since it is a core playback surface, not a utility. */
 static struct menu_table menu_table[] = {
+    { "music", &music_library },
+#ifdef HAVE_TAGCACHE
+    { "pictureflow", &pictureflow_item },
+#endif
+    { "wps", &wps_item },
+    { "equalizer", &equalizer_item },
+    { "playlists", &playlists },
+#ifdef HAVE_TAGCACHE
+    { "database", &db_browser },
+#endif
+    { "settings", &menu_ },
+    { "system_menu", &system_menu_ },
+};
+#else
+static struct menu_table menu_table[] = {
+    { "music", &music_library },
+    { "wps", &wps_item },
+    { "equalizer", &equalizer_item },
+    { "playlists", &playlists },
 #ifdef HAVE_TAGCACHE
     { "pictureflow", &pictureflow_item },
     { "database", &db_browser },
 #endif
-    { "files", &file_browser },
-    { "wps", &wps_item },
-    { "playlists", &playlists },
     { "plugins", &rocks_browser },
     { "shortcuts", &shortcut_menu },
     { "settings", &menu_ },
     { "system_menu", &system_menu_ },
 };
+#endif
 #define MAX_MENU_ITEMS (sizeof(menu_table) / sizeof(struct menu_table))
 static struct menu_item_ex *root_menu__[MAX_MENU_ITEMS];
 
@@ -733,7 +847,7 @@ static inline int load_screen(int screen)
 
     if (screen == GO_TO_BROWSEPLUGINS)
         activity = ACTIVITY_PLUGINBROWSER;
-    else if (screen == GO_TO_MAINMENU)
+    else if (screen == GO_TO_MAINMENU || screen == GO_TO_EQUALIZER)
         activity = ACTIVITY_SETTINGS;
     else if (screen == GO_TO_SYSTEM_SCREEN)
         activity =  ACTIVITY_SYSTEMSCREEN;
@@ -749,7 +863,8 @@ static inline int load_screen(int screen)
             || ret_val == GO_TO_WPS
             || ret_val == GO_TO_PREVIOUS_MUSIC
             || ret_val == GO_TO_PREVIOUS_BROWSER
-            || ret_val == GO_TO_FILEBROWSER)
+            || ret_val == GO_TO_FILEBROWSER
+            || ret_val == GO_TO_MUSICLIB)
         {
             pop_current_activity_without_refresh();
         }
@@ -954,7 +1069,12 @@ static int browser_default(void)
             return GO_TO_PLAYLISTS_SCREEN;
         case BROWSER_DEFAULT_FILES:
         default:
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+            /* Apple2026: "previous browser" / default = Music library at /Music */
+            return GO_TO_MUSICLIB;
+#else
             return GO_TO_FILEBROWSER;
+#endif
     }
 }
 
@@ -981,7 +1101,9 @@ void root_menu(void)
                 /* When we are in the main menu we want the hardware BACK
                  * button to be handled by HOST instead of rockbox */
                 ignore_back_button_stub(true);
-
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
+#endif
                 next_screen = do_menu(&root_menu_, &selected, NULL, false);
 
                 ignore_back_button_stub(false);
@@ -991,19 +1113,37 @@ void root_menu(void)
                 break;
 #ifdef HAVE_TAGCACHE
             case GO_TO_DBBROWSER:
+            case GO_TO_PICTUREFLOW:
 #endif
             case GO_TO_FILEBROWSER:
+            case GO_TO_MUSICLIB:
             case GO_TO_PLAYLISTS_SCREEN:
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                /* Music library and file browser start normal; tree.c will
+                 * switch to DENSE when the user descends into track-level folders. */
+                rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
+#endif
                 previous_browser = next_screen;
                 goto load_next_screen;
                 break;
 #if CONFIG_TUNER
             case GO_TO_WPS:
             case GO_TO_FM:
+                /* Apple2026 bounded-stack: mark whether WPS is entered from
+                 * the root menu ("Now Playing" / resume) versus from a
+                 * browse-to-play content chain.  Only the WPS path needs the
+                 * flag; FM is irrelevant for this check. */
+                if (next_screen == GO_TO_WPS)
+                    wps_entered_from_root = (last_screen == GO_TO_ROOT);
                 previous_music = next_screen;
                 goto load_next_screen;
                 break;
-#endif /* With !CONFIG_TUNER previous_music is always GO_TO_WPS */
+#else
+            case GO_TO_WPS:
+                wps_entered_from_root = (last_screen == GO_TO_ROOT);
+                goto load_next_screen;
+                break;
+#endif
 
             case GO_TO_PREVIOUS:
             {
@@ -1094,6 +1234,11 @@ void root_menu(void)
                 break;
             }
             default:
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                /* Playlist viewer shows individual tracks — use dense font. */
+                if (next_screen == GO_TO_PLAYLIST_VIEWER)
+                    rockpod_list_font_tier = ROCKPOD_LIST_FONT_DENSE;
+#endif
                 goto load_next_screen;
                 break;
         } /* switch() */
@@ -1102,4 +1247,9 @@ load_next_screen: /* load_screen is inlined */
         next_screen = load_screen(next_screen);
     }
 
+}
+
+void playback_source_set(enum playback_source src)
+{
+    global_status.playback_source = (signed char)src;
 }

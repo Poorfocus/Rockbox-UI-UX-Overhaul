@@ -28,7 +28,8 @@ preprocess2file = $(shell $(CC) $(PPCFLAGS) $(3) -E -P -x c -include config.h $(
 		grep -v '^$(_hash_)' | grep -v "^$$" > $(2))
 
 asmdefs2file = $(SILENT)$(CC) $(PPCFLAGS) $(3) -S -x c -o - -include config.h $(1) | \
-	perl -ne 'if(/^_?AD_(\w+):$$/){$$var=$$1}else{/^\W\.(?:word|long)\W(.*)$$/ && $$var && print "\#define $$var $$1\n";$$var=0}' > $(2)
+	awk '/^_?AD_[[:alnum:]_]+:$$/ { var = $$0; sub(/^_?AD_/, "", var); sub(/:$$/, "", var); next } \
+	     /^[[:space:]]+\.(word|long)[[:space:]]+/ && var != "" { sub(/^[[:space:]]+\.(word|long)[[:space:]]+/, ""); print "\#define " var " " $$0; var = "" }' > $(2)
 
 c2obj = $(addsuffix .o,$(basename $(call full_path_subst,$(ROOTDIR)/%,$(BUILDDIR)/%,$(1))))
 
@@ -66,9 +67,13 @@ mkdepfile = $(SILENT)perl $(TOOLSDIR)/multigcc.pl $(CC) $(PPCFLAGS) $(OTHER_INC)
 # function to create .bmp dependencies
 bmpdepfile = $(SILENT) \
 	for each in $(2); do \
-	    obj=`echo $$each | sed -e 's/\.bmp/.o/' -e 's:$(ROOTDIR):$(BUILDDIR):'`; \
-	    src=`echo $$each | sed -e 's/\.bmp/.c/' -e 's:$(ROOTDIR):$(BUILDDIR):'`; \
-	    hdr=`echo $$each | sed -e 's/.*\/\(.*\)\..*\.bmp/bitmaps\/\1\.h/'`; \
+	    rel=`echo $$each | sed -e 's:^$(ROOTDIR)/::'`; \
+	    obj=$(BUILDDIR)/`echo $$rel | sed -e 's/\.bmp/.o/'`; \
+	    src=$(BUILDDIR)/`echo $$rel | sed -e 's/\.bmp/.c/'`; \
+	    hdr=`echo $$rel | sed \
+	        -e 's/\.[0-9x]*\.bmp/.h/' -e 's/\.bmp/.h/' \
+	        -e 's:^apps/bitmaps/\(mono\|native\|remote_mono\|remote_native\)/:bitmaps/:' \
+	        -e 's:^apps/plugins/bitmaps/\(mono\|native\|remote_mono\|remote_native\)/:pluginbitmaps/:'`; \
 	    echo $$obj: $$src; \
 	    echo $$src: $$each; \
 	    echo $(BUILDDIR)/$$hdr: $$src; \

@@ -645,6 +645,7 @@ static long do_party_mode(long action)
             case ACTION_WPS_ABSETB_NEXTDIR:
             case ACTION_WPS_ABSETA_PREVDIR:
             case ACTION_WPS_STOP:
+            case ACTION_WPS_QUICKSCREEN:
                 return ACTION_NONE;
                 break;
             default:
@@ -678,6 +679,101 @@ static inline int action_wpsab_single(long button)
         }
 #endif /* def ACTION_WPSAB_SINGLE */
     return button;
+}
+
+/* Apple2026: shared context-preserving leave from WPS (SELECT short and MENU short).
+ * Returns false with *out_screen set when root_menu should switch screens.
+ * Returns true to stay in WPS (*restore / *theme_enabled updated for plugin case). */
+static bool wps_handle_browse_parent(long *out_screen, bool *theme_enabled,
+                                   bool *restore)
+{
+    /* Apple2026 bounded-stack rule: if WPS was entered from the root menu
+     * ("Now Playing" / resume), back returns to Main Menu -- not to the stale
+     * playback_source chain the user already backed out of.  This prevents
+     * the Main Menu -> Now Playing -> back -> Cover Flow -> back -> Main Menu
+     * infinite loop. */
+    if (wps_entered_from_root)
+    {
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_ROOT;
+        return false;
+    }
+
+    switch ((enum playback_source)global_status.playback_source)
+    {
+    case PLAYBACK_SOURCE_NONE:
+        break;
+#ifdef HAVE_TAGCACHE
+    case PLAYBACK_SOURCE_PICTUREFLOW:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PICTUREFLOW;
+        return false;
+    case PLAYBACK_SOURCE_DATABASE:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_DBBROWSER;
+        return false;
+#endif
+    case PLAYBACK_SOURCE_MUSICLIB:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_MUSICLIB;
+        return false;
+    case PLAYBACK_SOURCE_FILEBROWSER:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PREVIOUS_BROWSER;
+        return false;
+    case PLAYBACK_SOURCE_PLAYLIST_BROWSER:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PLAYLISTS_SCREEN;
+        return false;
+    case PLAYBACK_SOURCE_PLAYLIST_VIEWER:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PLAYLIST_VIEWER;
+        return false;
+    default:
+        break;
+    }
+
+    int sel_action = global_settings.wps_select_action;
+    if (sel_action == 1) /* database */
+    {
+#ifdef HAVE_TAGCACHE
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_DBBROWSER;
+        return false;
+#else
+        return true; /* stay in WPS */
+#endif
+    }
+    else if (sel_action == 2) /* coverflow */
+    {
+        *theme_enabled = false;
+        gwps_leave_wps(false);
+        filetype_load_plugin("pictureflow", NULL);
+        if (!(audio_status() & AUDIO_STATUS_PLAY))
+        {
+            gwps_leave_wps(true);
+            *out_screen = GO_TO_WPS;
+            return false;
+        }
+        *restore = true;
+        return true;
+    }
+    else if (sel_action == 3) /* files (Apple2026: Music at /Music on iPod) */
+    {
+        gwps_leave_wps(true);
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+        *out_screen = GO_TO_MUSICLIB;
+#else
+        *out_screen = GO_TO_FILEBROWSER;
+#endif
+        return false;
+    }
+    else /* default — previous browser */
+    {
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PREVIOUS_BROWSER;
+        return false;
+    }
 }
 
 /* The WPS can be left in two ways:
@@ -840,36 +936,10 @@ long gui_wps_show(void)
 
             case ACTION_WPS_BROWSE:
             {
-                int sel_action = global_settings.wps_select_action;
-                if (sel_action == 1) /* database */
-                {
-#ifdef HAVE_TAGCACHE
-                    gwps_leave_wps(true);
-                    return GO_TO_DBBROWSER;
-#endif
-                }
-                else if (sel_action == 2) /* coverflow */
-                {
-                    theme_enabled = false;
-                    gwps_leave_wps(false);
-                    filetype_load_plugin("pictureflow", NULL);
-                    if (!(audio_status() & AUDIO_STATUS_PLAY))
-                    {
-                        gwps_leave_wps(true);
-                        return GO_TO_WPS;
-                    }
-                    restore = true;
-                }
-                else if (sel_action == 3) /* files */
-                {
-                    gwps_leave_wps(true);
-                    return GO_TO_FILEBROWSER;
-                }
-                else /* default — previous browser */
-                {
-                    gwps_leave_wps(true);
-                    return GO_TO_PREVIOUS_BROWSER;
-                }
+                long next_screen;
+                if (!wps_handle_browse_parent(&next_screen, &theme_enabled,
+                                             &restore))
+                    return next_screen;
                 break;
             }
 
@@ -995,10 +1065,10 @@ long gui_wps_show(void)
                 break;
             /* menu key functions */
             case ACTION_WPS_MENU:
+                /* MENU repeat only (keymap): main menu / home */
                 gwps_leave_wps(true);
                 return GO_TO_ROOT;
                 break;
-
 
 #ifdef HAVE_QUICKSCREEN
             case ACTION_WPS_QUICKSCREEN:
@@ -1048,29 +1118,6 @@ long gui_wps_show(void)
                     update = true;
                 }
                 break;
-
-                /* iPod Classic 6G custom: open PictureFlow instead of stopping */
-            case ACTION_WPS_STOP:
-                {
-                    theme_enabled = false;
-                    gwps_leave_wps(false);
-                    filetype_load_plugin("pictureflow", NULL);
-                    if (!(audio_status() & AUDIO_STATUS_PLAY))
-                    {
-                        /* audio stopped in PictureFlow; return to WPS
-                           via wpsscrn() which handles playlist resume */
-                        gwps_leave_wps(true);
-                        return GO_TO_WPS;
-                    }
-                    restore = true;
-                }
-                break;
-#if 0 /* original stop behavior */
-            case ACTION_WPS_STOP:
-                bookmark = true;
-                exit = true;
-                break;
-#endif
 
             case ACTION_WPS_LIST_BOOKMARKS:
                 gwps_leave_wps(true);

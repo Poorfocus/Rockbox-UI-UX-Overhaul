@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Generate pill-style progress/volume bar BMPs for Apple2026 WPS (Apple Music-like track + fill).
+
+Also generates a subtle album-art drop shadow (backdrop layer, drawn under %Cl/%Cd).
+
+Rockbox draws the backdrop full-width, then clips the bar image from the left by progress.
+Both images share geometry: full-width pill (rounded caps). No slider/knob image.
+
+Bar geometry derived from Apple iOS Music scrubber (SVG reference, 390px wide screen):
+  Track path:  height 3px, fill #979798 (mid-gray unplayed)
+  Played path: fill #3C3C43 opacity 0.6 (dark charcoal played, darker than track)
+  Pill radius: 0.5 -- effectively a perfect stadium cap at 3px height.
+
+Adapted for 320x240 iPod hardware: 4px height (half of old 8px).
+  CLR_UNPLAYED  #C7C7CC  iOS secondary label gray -- lighter, unplayed portion
+  CLR_PLAYED    #3C3C43  Apple's exact played fill, direct from SVG reference
+  CLR_SHELL     #FFFFFF  outer canvas matches WPS background"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFilter
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "wps" / "Apple2026"
+
+# Apple Music scrubber colors (from iOS Stocks SVG reference).
+CLR_UNPLAYED = (199, 199, 204)  # C7C7CC -- unplayed track / bar background
+CLR_PLAYED   = (60,  60,  67)   # 3C3C43 -- played fill / active bar fill
+CLR_SHELL    = (255, 255, 255)  # FFFFFF -- canvas bg matches WPS backdrop
+
+# Album art region bg for shadow composite.
+CLR_AA_BG = (234, 234, 234)  # EAEAEA
+
+
+def _album_drop_shadow(path, size=188, art=180):
+    """Very soft drop shadow -- Interpod / Apple Music card depth on a flat shell."""
+    bg = Image.new("RGB", (size, size), CLR_AA_BG)
+    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    ox, oy = 3, 4
+    draw.rounded_rectangle(
+        (ox, oy, ox + art - 1, oy + art - 1),
+        radius=4,
+        fill=(58, 58, 62, 22),
+    )
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=7))
+    out = Image.alpha_composite(bg.convert("RGBA"), layer).convert("RGB")
+    out.save(path)
+
+
+def _pill_rgb(width, height, fill):
+    """Render a full-width pill on a CLR_SHELL canvas.
+
+    The canvas matches the WPS backdrop so any exposed edge pixels are invisible.
+    radius = height//2 gives a perfect stadium (half-circle) cap."""
+    img = Image.new("RGB", (width, height), CLR_SHELL)
+    r = max(1, height // 2)
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle((0, 0, width - 1, height - 1), radius=r, fill=fill)
+    return img
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+
+    # Progress bar -- 4px height (down from 8px), 280px wide (320 - 40px margins)
+    pw, ph = 280, 4
+    _pill_rgb(pw, ph, CLR_UNPLAYED).save(OUT / "pb_backdrop.bmp")  # unplayed portion
+    _pill_rgb(pw, ph, CLR_PLAYED).save(OUT / "pb.bmp")             # played fill
+    # Active/seek variant: 1px taller for subtle visual weight during interaction
+    ah = 5
+    _pill_rgb(pw, ah, CLR_UNPLAYED).save(OUT / "pb_active_backdrop.bmp")
+    _pill_rgb(pw, ah, CLR_PLAYED).save(OUT / "pb_active.bmp")
+
+    # Volume bar -- same 4px family, 204px wide (between speaker icons)
+    vw, vh = 204, 4
+    _pill_rgb(vw, vh, CLR_UNPLAYED).save(OUT / "vb_backdrop.bmp")
+    _pill_rgb(vw, vh, CLR_PLAYED).save(OUT / "vb.bmp")
+
+    _album_drop_shadow(OUT / "albumShadow.bmp")
+
+    print("Wrote pill bar + album shadow BMPs to {}".format(OUT))
+
+
+if __name__ == "__main__":
+    main()

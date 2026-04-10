@@ -51,6 +51,7 @@
 #include "menus/exported_menus.h"
 #include "yesno.h"
 #include "playback.h"
+#include "root_menu.h"
 #ifdef HAVE_TAGCACHE
 #include "tagcache.h"
 #endif
@@ -1044,6 +1045,7 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                 {
                     /* play new track */
                     playlist_start(current_track->index, 0, 0);
+                    playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
                     update_playlist(false);
                 }
                 else if (warn_on_pl_erase())
@@ -1059,6 +1061,7 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                         if (global_settings.playlist_shuffle)
                             start_index = playlist_shuffle(current_tick, start_index);
                         playlist_start(start_index, 0, 0);
+                        playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
 
                         if (viewer.initial_selection)
                             *(viewer.initial_selection) = viewer.selected_track;
@@ -1308,6 +1311,7 @@ bool search_playlist(void)
             {
                 int sel = gui_synclist_get_sel_pos(&playlist_lists);
                 playlist_start(found_indicies[sel], 0, 0);
+                playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
                 exit = 1;
             }
                 break;

@@ -509,9 +509,11 @@ MENUITEM_FUNCTION(main_menu_config_item, 0, ID2P(LANG_MAIN_MENU),
 
 MAKE_MENU(main_menu_, ID2P(LANG_SETTINGS), NULL,
         Icon_Submenu_Entered,
-        &sound_settings,
         &playback_settings,
-        &settings_menu_item, &theme_menu,
+        &equalizer_menu,
+        &sound_settings,
+        &theme_menu,
+        &settings_menu_item,
 #ifdef HAVE_RECORDING
         &recording_settings,
 #endif

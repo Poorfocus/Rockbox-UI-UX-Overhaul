@@ -29,7 +29,6 @@
 #include "settings.h"
 #include "menu.h"
 #include "sound_menu.h"
-#include "eq_menu.h"
 #include "exported_menus.h"
 #include "menu_common.h"
 #include "splash.h"
@@ -263,7 +262,7 @@ MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_Audio,
 #ifdef AUDIOHW_HAVE_POWER_MODE
           ,&power_mode
 #endif
-          ,&crossfeed_menu, &equalizer_menu, &dithering_enabled
+          ,&crossfeed_menu, &dithering_enabled
           ,&surround_menu, &pbe_menu, &afr_enabled
 #ifdef HAVE_PITCHCONTROL
           ,&timestretch_enabled

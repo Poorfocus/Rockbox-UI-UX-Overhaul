@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "config.h"
 #include "string-extra.h"
 #include "panic.h"
 
@@ -147,6 +148,28 @@ static bool ext_stripit(bool isdir, int attr, int dirfilter)
     return false;
 }
 
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+/* Display-only: hide Picard-style "12. Title.ext" leading index in file browser. */
+static char *strip_leading_track_index_for_display(char *dst, size_t dstlen,
+                                                   const char *name)
+{
+    const char *p = name;
+
+    if (!name || dstlen == 0)
+        return strmemccpy(dst, "", dstlen);
+    while (*p >= '0' && *p <= '9')
+        p++;
+    if (*p != '.')
+        return strmemccpy(dst, name, dstlen);
+    p++;
+    while (*p == ' ')
+        p++;
+    if (*p == '\0')
+        return strmemccpy(dst, name, dstlen);
+    return strmemccpy(dst, p, dstlen);
+}
+#endif
+
 static const char* tree_get_filename(int selected_item, void *data,
                                      char *buffer, size_t buffer_len)
 {
@@ -168,11 +191,29 @@ static const char* tree_get_filename(int selected_item, void *data,
         attr = entry->attr;
     }
 
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    const char *display = name;
+    char strip_buf[AVERAGE_FILENAME_LENGTH];
+
+    if (!(attr & ATTR_DIRECTORY)
+        && (attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
+    {
+        strip_leading_track_index_for_display(strip_buf, sizeof(strip_buf), name);
+        display = strip_buf;
+    }
+#else
+    const char *display = name;
+#endif
+
     if(ext_stripit((attr & ATTR_DIRECTORY), attr, *(local_tc->dirfilter)))
     {
-        return(strip_extension(buffer, buffer_len, name));
+        return strip_extension(buffer, buffer_len, display);
     }
-    return(name);
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    if (display != name)
+        return strmemccpy(buffer, display, buffer_len);
+#endif
+    return display;
 }
 
 #ifdef HAVE_LCD_COLOR
@@ -200,6 +241,17 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
     {
         struct entry *entry = get_valid_entry(__func__, local_tc, selected_item);
 
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+        if ((entry->attr & ATTR_DIRECTORY)
+            && local_tc->browse
+            && (local_tc->browse->flags & BROWSE_APPLE2026_MUSICLIB))
+        {
+            if (local_tc->dirlevel == 0)
+                return Icon_Artist;
+            else
+                return Icon_Album;
+        }
+#endif
         return filetype_get_icon(entry->attr);
     }
 }
@@ -525,6 +577,16 @@ static int update_dir(void)
 #ifdef HAVE_LCD_COLOR
     gui_synclist_set_color_callback(list, &tree_get_filecolor);
 #endif
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Apple2026 two-tier font: inside the Music library, switch to the dense
+     * 16pt font when we have descended at least one folder below the artist
+     * level (dirlevel >= 2 means /Music/Artist/Album/ or deeper).
+     * At the library root and artist-folder level (dirs only, dirlevel < 2)
+     * keep normal 18pt.  Non-music-library surfaces stay normal. */
+    if (!id3db && tc.browse && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB))
+        rockpod_list_font_tier = (tc.dirlevel >= 2) ?
+            ROCKPOD_LIST_FONT_DENSE : ROCKPOD_LIST_FONT_NORMAL;
+#endif
     if( tc.selected_item >= tc.filesindir)
         tc.selected_item=tc.filesindir-1;
 
@@ -628,6 +690,29 @@ void set_dirfilter(int l_dirfilter)
     *tc.dirfilter = l_dirfilter;
 }
 
+/* True if paths refer to the same directory; ignores trailing slashes. */
+static bool paths_same_directory(const char *a, const char *b)
+{
+    size_t la = strlen(a);
+    size_t lb = strlen(b);
+    while (la > 1 && a[la - 1] == '/')
+        la--;
+    while (lb > 1 && b[lb - 1] == '/')
+        lb--;
+    if (la != lb)
+        return false;
+    return strncmp(a, b, la) == 0;
+}
+
+/* Main-menu Music browse root is `/Music/` only — not `/Music/Artist/…` (resume). */
+static bool path_is_curated_music_library_root(const char *path)
+{
+    size_t n = strlen(path);
+    while (n > 1 && path[n - 1] == '/')
+        n--;
+    return n == 6 && !strncmp(path, "/Music", 6);
+}
+
 /* Selects a path + file and update tree context properly */
 static void set_current_file_ex(const char *path, const char *filename)
 {
@@ -713,6 +798,30 @@ static int exit_to_new_screen(int screen)
 {
     gui_synclist_scroll_stop(&tree_lists);
     return screen;
+}
+
+/* Apple2026: tag WPS return target when tree starts playback */
+static void tree_set_playback_source_for_wps(void)
+{
+    if (*tc.dirfilter == SHOW_M3U)
+    {
+        playback_source_set(PLAYBACK_SOURCE_PLAYLIST_BROWSER);
+        return;
+    }
+#ifdef HAVE_TAGCACHE
+    if (*tc.dirfilter == SHOW_ID3DB)
+    {
+        playback_source_set(PLAYBACK_SOURCE_DATABASE);
+        return;
+    }
+#endif
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    if (!strncmp(tc.currdir, "/Music", 6)
+        && (tc.currdir[6] == '/' || tc.currdir[6] == '\0'))
+        playback_source_set(PLAYBACK_SOURCE_MUSICLIB);
+    else
+#endif
+        playback_source_set(PLAYBACK_SOURCE_FILEBROWSER);
 }
 
 /* main loop, handles key events */
@@ -808,6 +917,7 @@ static int dirbrowse(void)
                     case GO_TO_PLUGIN:
                         return exit_to_new_screen(GO_TO_PLUGIN);
                     case GO_TO_WPS:
+                        tree_set_playback_source_for_wps();
                         return exit_to_new_screen(GO_TO_WPS);
 #if CONFIG_TUNER
                     case GO_TO_FM:
@@ -826,6 +936,24 @@ static int dirbrowse(void)
                     exit_func = true;
                     break;
                 }
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                /* Apple2026: intercept back at the /Music/ boundary for
+                 * music-library sessions.  We guard with dirlevel <= 1 so
+                 * that a corrupted dirlevel (e.g. after a stale-path resume)
+                 * does not fire this early and skip levels.  The path check
+                 * handles the string match; dirlevel <= 1 ensures we are
+                 * actually at (or near) the library root and not deeper. */
+                if (*tc.dirfilter != SHOW_ID3DB && tc.browse
+                    && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)
+                    && tc.dirlevel <= 1
+                    && path_is_curated_music_library_root(tc.currdir))
+                {
+                    if (oldbutton == ACTION_TREE_PGLEFT)
+                        break;
+                    else
+                        return exit_to_new_screen(GO_TO_ROOT);
+                }
+#endif
                 if ((*tc.dirfilter == SHOW_ID3DB && tc.dirlevel == 0) ||
                     ((*tc.dirfilter != SHOW_ID3DB && !strcmp(currdir,"/"))))
                 {
@@ -984,6 +1112,7 @@ static int dirbrowse(void)
                         break;
 
                     case ONPLAY_START_PLAY:
+                        tree_set_playback_source_for_wps();
                         return exit_to_new_screen(GO_TO_WPS);
                         break;
 
@@ -1018,7 +1147,10 @@ static int dirbrowse(void)
                 break;
         }
         if (start_wps)
+        {
+            tree_set_playback_source_for_wps();
             return exit_to_new_screen(GO_TO_WPS);
+        }
         if (button && !IS_SYSEVENT(button))
         {
             storage_spin();

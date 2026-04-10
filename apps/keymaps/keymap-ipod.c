@@ -40,6 +40,13 @@ CONTEXT_CUSTOM|CONTEXT_TREE = the standard list/tree defines (without directions
 
 */
 
+/*
+ * Apple2026 WPS: ACTION_WPS_VIEW_PLAYLIST before single-button MENU/SELECT.
+ * Wheel scroll = volume. PLAY short = play/pause; PLAY repeat = quickscreen (utilities).
+ * MENU repeat = main menu (home); MENU short = same context return as SELECT (browse parent).
+ * SELECT+PLAY = hotkey.
+ */
+
 static const struct button_mapping button_context_standard[]  = {
     { ACTION_STD_PREV,          BUTTON_SCROLL_BACK,                 BUTTON_NONE },
     { ACTION_STD_PREVREPEAT,    BUTTON_SCROLL_BACK|BUTTON_REPEAT,   BUTTON_NONE },
@@ -76,8 +83,9 @@ static const struct button_mapping button_context_tree_scroll_lr[]  = {
 }; /* button_context_tree_scroll_lr */
 
 static const struct button_mapping button_context_wps[]  = {
+    { ACTION_WPS_VIEW_PLAYLIST, BUTTON_SELECT|BUTTON_MENU, BUTTON_NONE },
     { ACTION_WPS_PLAY,      BUTTON_PLAY|BUTTON_REL,         BUTTON_PLAY },
-    { ACTION_WPS_STOP,      BUTTON_PLAY|BUTTON_REPEAT,      BUTTON_PLAY },
+    { ACTION_WPS_QUICKSCREEN, BUTTON_PLAY|BUTTON_REPEAT,      BUTTON_PLAY },
     { ACTION_WPS_SKIPPREV,  BUTTON_LEFT|BUTTON_REL,         BUTTON_LEFT },
     { ACTION_WPS_SEEKBACK,  BUTTON_LEFT|BUTTON_REPEAT,      BUTTON_NONE },
     { ACTION_WPS_STOPSEEK,  BUTTON_LEFT|BUTTON_REL,         BUTTON_LEFT|BUTTON_REPEAT },
@@ -91,8 +99,8 @@ static const struct button_mapping button_context_wps[]  = {
     { ACTION_WPS_BROWSE,    BUTTON_SELECT|BUTTON_REL,           BUTTON_SELECT },
     { ACTION_WPS_CONTEXT,   BUTTON_SELECT|BUTTON_REPEAT,        BUTTON_SELECT },
     { ACTION_WPS_HOTKEY,        BUTTON_SELECT|BUTTON_PLAY,      BUTTON_NONE },
-    { ACTION_WPS_MENU,          BUTTON_MENU|BUTTON_REL,         BUTTON_MENU },
-    { ACTION_WPS_QUICKSCREEN,   BUTTON_MENU|BUTTON_REPEAT,      BUTTON_MENU },
+    { ACTION_WPS_MENU,          BUTTON_MENU|BUTTON_REPEAT,      BUTTON_MENU },
+    { ACTION_WPS_BROWSE,    BUTTON_MENU|BUTTON_REL,             BUTTON_MENU },
 
     LAST_ITEM_IN_LIST,
 }; /* button_context_wps */
@@ -327,13 +335,14 @@ static const struct button_mapping remote_button_context_standard[]  = {
 }; /* remote_button_context_standard */
 
 static const struct button_mapping remote_button_context_wps[]  = {
+    { ACTION_WPS_VIEW_PLAYLIST, BUTTON_RC_SELECT|BUTTON_RC_MENU, BUTTON_NONE },
     { ACTION_WPS_VOLDOWN,   BUTTON_RC_VOL_DOWN,               BUTTON_NONE },
     { ACTION_WPS_VOLDOWN,   BUTTON_RC_VOL_DOWN|BUTTON_REPEAT, BUTTON_NONE },
     { ACTION_WPS_VOLUP,     BUTTON_RC_VOL_UP,                 BUTTON_NONE },
     { ACTION_WPS_VOLUP,     BUTTON_RC_VOL_UP|BUTTON_REPEAT,   BUTTON_NONE },
     // RC_UP and RC_DOWN?
     { ACTION_WPS_PLAY,      BUTTON_RC_PLAY|BUTTON_REL,    BUTTON_RC_PLAY },
-    { ACTION_WPS_STOP,      BUTTON_RC_PLAY|BUTTON_REPEAT, BUTTON_NONE },
+    { ACTION_WPS_QUICKSCREEN, BUTTON_RC_PLAY|BUTTON_REPEAT, BUTTON_RC_PLAY },
     { ACTION_WPS_SKIPNEXT,  BUTTON_RC_RIGHT|BUTTON_REL,   BUTTON_RC_RIGHT },
     { ACTION_WPS_SEEKFWD,   BUTTON_RC_RIGHT|BUTTON_REPEAT,BUTTON_NONE },
     { ACTION_WPS_STOPSEEK,  BUTTON_RC_RIGHT|BUTTON_REL,   BUTTON_RC_RIGHT|BUTTON_REPEAT },
@@ -343,8 +352,8 @@ static const struct button_mapping remote_button_context_wps[]  = {
     { ACTION_WPS_BROWSE,    BUTTON_RC_SELECT|BUTTON_REL,           BUTTON_RC_SELECT },
     { ACTION_WPS_CONTEXT,   BUTTON_RC_SELECT|BUTTON_REPEAT,        BUTTON_RC_SELECT },
     { ACTION_WPS_HOTKEY,    BUTTON_RC_SELECT|BUTTON_PLAY,          BUTTON_NONE },
-    { ACTION_WPS_MENU,      BUTTON_RC_MENU|BUTTON_REL,             BUTTON_RC_MENU },
-    { ACTION_WPS_QUICKSCREEN,   BUTTON_RC_MENU|BUTTON_REPEAT,      BUTTON_RC_MENU },
+    { ACTION_WPS_MENU,      BUTTON_RC_MENU|BUTTON_REPEAT,      BUTTON_RC_MENU },
+    { ACTION_WPS_BROWSE,    BUTTON_RC_MENU|BUTTON_REL,             BUTTON_RC_MENU },
 
 
     LAST_ITEM_IN_LIST__NEXTLIST(CONTEXT_STD)

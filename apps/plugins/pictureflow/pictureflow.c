@@ -24,6 +24,7 @@
 ****************************************************************************/
 
 #include "plugin.h"
+#include "rbpaths.h"
 #include "albumart.h"
 #include "lib/read_image.h"
 #include "lib/pluginlib_actions.h"
@@ -399,6 +400,7 @@ struct pf_track_t {
     int    list_visible;
     int    list_y;
     int    list_h;
+    int    list_row_h;
     size_t borrowed;
     size_t used;
     struct track_data *index;
@@ -769,7 +771,7 @@ static void config_set_defaults(struct pf_config_t *cfg)
      cfg->num_slides = 4;   /* 3 visible + 1 animation buffer per side */
      cfg->zoom = 100;
      cfg->show_fps = false;
-     cfg->auto_wps = 0;
+     cfg->auto_wps = 2; /* Apple2026: Via Track List — select track → play + go to WPS */
      cfg->last_album = 0;
 
      cfg->resize = true;
@@ -780,7 +782,7 @@ static void config_set_defaults(struct pf_config_t *cfg)
      cfg->year_sort_order = ASCENDING;
      cfg->show_year = false;
      cfg->parallel_slides = true;
-     cfg->show_statusbar = true;
+     cfg->show_statusbar = false;
      cfg->update_albumart = false;
      cfg->scroll_speed = 200;
      cfg->transition_speed = 200;
@@ -2173,26 +2175,13 @@ static bool get_albumart_for_index_from_db(const int slide_index, char *buf,
 }
 
 /**
-  Draw the PictureFlow logo
+  Draw the loading splash (Apple2026 style — plain text, no external bitmap)
  */
 static void draw_splashscreen(unsigned char * buf_tmp, size_t buf_tmp_size)
 {
+    (void)buf_tmp;
+    (void)buf_tmp_size;
     struct screen* display = rb->screens[SCREEN_MAIN];
-#if FB_DATA_SZ > 1
-    ALIGN_BUFFER(buf_tmp, buf_tmp_size, sizeof(fb_data));
-#endif
-    struct bitmap logo = {
-#if LCD_WIDTH < 200
-        .width = 100,
-        .height = 18,
-#else
-        .width = 193,
-        .height = 34,
-#endif
-        .data = buf_tmp
-    };
-    int ret = rb->read_bmp_file(SPLASH_BMP, &logo, buf_tmp_size,
-                                FORMAT_NATIVE, NULL);
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
     rb->lcd_set_background(pf_bg_color);
@@ -2206,17 +2195,12 @@ static void draw_splashscreen(unsigned char * buf_tmp, size_t buf_tmp_size)
 #endif
     rb->lcd_clear_display();
 
-    if (ret > 0)
-    {
-#if LCD_DEPTH == 1  /* Mono LCDs need the logo inverted */
-        rb->lcd_set_drawmode(PICTUREFLOW_DRMODE ^ DRMODE_INVERSEVID);
-#endif
-        display->bitmap(logo.data, (LCD_WIDTH - logo.width) / 2, 10,
-            logo.width, logo.height);
-#if LCD_DEPTH == 1  /* Mono LCDs need the logo inverted */
-        rb->lcd_set_drawmode(PICTUREFLOW_DRMODE);
-#endif
-    }
+    /* Draw "Cover Flow" title centered, using system font */
+    const char *title = "Cover Flow";
+    int tw, th;
+    rb->lcd_getstringsize(title, &tw, &th);
+    display->putsxy((LCD_WIDTH - tw) / 2, (LCD_HEIGHT - th) / 2 - 10,
+                    title);
 
     rb->lcd_update();
 }
@@ -2228,9 +2212,13 @@ static void draw_splashscreen(unsigned char * buf_tmp, size_t buf_tmp_size)
 static void draw_progressbar(int step, int count, char *msg)
 {
     static int txt_w, txt_h;
-    const int bar_height = 22;
-    const int w = LCD_WIDTH - 20;
-    const int x = 10;
+    const int bar_height = 2;
+    int w = LCD_WIDTH - 40;
+    if (w > 240)
+        w = 240;
+    if (w < 80)
+        w = 80;
+    const int x = (LCD_WIDTH - w) / 2;
     static int y;
     if (msg != NULL)
     {
@@ -2247,24 +2235,26 @@ static void draw_progressbar(int step, int count, char *msg)
 #endif
         rb->lcd_getstringsize(msg, &txt_w, &txt_h);
 
-        y = (LCD_HEIGHT - txt_h)/2;
+        y = (LCD_HEIGHT - txt_h) / 2;
 
-        rb->lcd_putsxy((LCD_WIDTH - txt_w)/2, y, msg);
-        y += (txt_h + 5);
+        rb->lcd_putsxy((LCD_WIDTH - txt_w) / 2, y, msg);
+        y += (txt_h + 8);
     }
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
-    rb->lcd_set_foreground(pf_color_mix(100));
+    /* Apple2026: rail matches WPS/shell progress track (E5E5EA); fill = tertiary */
+    rb->lcd_set_foreground(N_PIX(229, 229, 234));
 #else
-    rb->lcd_set_foreground(N_BRIGHT(100));
+    rb->lcd_set_foreground(N_BRIGHT(170));
 #endif
 #endif
-    rb->lcd_drawrect(x, y, w+2, bar_height);
+    rb->lcd_fillrect(x, y, w, bar_height);
 #if LCD_DEPTH > 1
-    rb->lcd_set_foreground(N_PIX(165, 231, 82));
+    /* Apple2026: match shell tertiary progress fill (see A26_PROGRESS_FILL) */
+    rb->lcd_set_foreground(N_PIX(60, 60, 67));
 #endif
 
-    rb->lcd_fillrect(x+1, y+1, step * w / count, bar_height-2);
+    rb->lcd_fillrect(x, y, (count > 0) ? (step * w / count) : 0, bar_height);
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
     rb->lcd_set_foreground(pf_fg_color);
@@ -4134,25 +4124,69 @@ static void reverse_animation(void)
 static inline void draw_gradient(int y, int h)
 {
 #ifdef HAVE_LCD_COLOR
-    mylcd_set_foreground(pf_lss_color);
+    /* Apple2026: flat bar matches WPSLIST selector E5E5EA (no gradient) */
+    mylcd_set_foreground(N_PIX(229, 229, 234));
     mylcd_fillrect(0, y, LCD_WIDTH, h);
 #else
-    int r, inc, c;
-    inc = (100 << 8) / h;
-    c = 0;
-    for (r = 0; r < h; r++) {
-        int bright = (r > h/2) ? (h - r) : r;
-        bright = bright * 255 / (h/2);
-        mylcd_set_foreground(G_BRIGHT(160 * bright / 255));
-        mylcd_hline(0, LCD_WIDTH, r + y);
-    }
+    mylcd_set_foreground(G_BRIGHT(160));
+    mylcd_fillrect(0, y, LCD_WIDTH, h);
 #endif
 }
 
 
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+static int pf_tracklist_font_id = -1;
+static int pf_album_title_font_id = -1;
+
+static int pf_track_row_height(void)
+{
+    if (pf_tracklist_font_id >= 0)
+    {
+        int h;
+        rb->lcd_setfont(pf_tracklist_font_id);
+        h = rb->screens[SCREEN_MAIN]->getcharheight();
+        rb->lcd_setfont(FONT_UI);
+        return h;
+    }
+    return rb->screens[SCREEN_MAIN]->getcharheight();
+}
+
+/* Vertical space for album + artist (matches draw_album_text). */
+static int pf_album_block_px(int ui_char_h)
+{
+    if (pf_album_title_font_id >= 0)
+    {
+        struct font *ft = rb->font_get(pf_album_title_font_id);
+        if (ft)
+        {
+            int h = (int)ft->height;
+            /* Tight pair: album + artist + small gap (was +6; less empty padding). */
+            return h + (h * 3 / 4) + 3;
+        }
+    }
+    return ui_char_h * 3;
+}
+#else
+static int pf_tracklist_font_id = -1;
+static int pf_album_title_font_id = -1;
+
+static int pf_track_row_height(void)
+{
+    return rb->screens[SCREEN_MAIN]->getcharheight();
+}
+
+static int pf_album_block_px(int ui_char_h)
+{
+    (void)pf_tracklist_font_id;
+    (void)pf_album_title_font_id;
+    return ui_char_h * 3;
+}
+#endif
+
 static void track_list_yh(int char_height)
 {
     bool needs_space = pf_cfg.show_fps || aa_cache.inspected < pf_idx.album_ct;
+    int abh = pf_album_block_px(char_height);
 
     switch (pf_cfg.show_album_name)
     {
@@ -4162,20 +4196,20 @@ static void track_list_yh(int char_height)
             break;
         case ALBUM_NAME_BOTTOM:
             pf_tracks.list_y = (needs_space ? char_height : 0);
-            pf_tracks.list_h = pf_height - pf_tracks.list_y - (char_height * 3);
+            pf_tracks.list_h = pf_height - pf_tracks.list_y - abh;
             break;
         case ALBUM_AND_ARTIST_TOP:
-            pf_tracks.list_y = char_height * 3;
+            pf_tracks.list_y = abh;
             pf_tracks.list_h = pf_height - pf_tracks.list_y -
                            (needs_space ? char_height : 0);
             break;
         case ALBUM_AND_ARTIST_BOTTOM:
             pf_tracks.list_y = (needs_space ? char_height : 0);
-            pf_tracks.list_h = pf_height - pf_tracks.list_y - (char_height * 3);
+            pf_tracks.list_h = pf_height - pf_tracks.list_y - abh;
             break;
         case ALBUM_NAME_TOP:
         default:
-            pf_tracks.list_y = char_height * 3;
+            pf_tracks.list_y = abh;
             pf_tracks.list_h = pf_height - pf_tracks.list_y -
                            (needs_space ? char_height : 0);
             break;
@@ -4189,9 +4223,14 @@ void reset_track_list(void)
 {
     int char_height = rb->screens[SCREEN_MAIN]->getcharheight();
     int total_height;
+    int row_h;
     track_list_yh(char_height);
+    row_h = pf_track_row_height();
+    if (row_h < 1)
+        row_h = char_height;
+    pf_tracks.list_row_h = row_h;
     pf_tracks.list_visible =
-                         fmin( pf_tracks.list_h/char_height , pf_tracks.count );
+                         fmin( pf_tracks.list_h / row_h , pf_tracks.count );
 
     pf_tracks.list_start = 0;
     pf_tracks.sel = 0;
@@ -4199,7 +4238,7 @@ void reset_track_list(void)
 
     /* let the tracklist start more centered
      * if the screen isn't filled with tracks */
-    total_height = pf_tracks.count*char_height;
+    total_height = pf_tracks.count * row_h;
     if (total_height < pf_tracks.list_h)
     {
         pf_tracks.list_y += (pf_tracks.list_h - total_height) / 2;
@@ -4210,16 +4249,35 @@ void reset_track_list(void)
 static void draw_album_text(void);
 static void show_track_list_loading(void)
 {
-    int x = (LCD_WIDTH - mylcd_getstringsize(rb->str(LANG_WAIT), NULL, NULL)) / 2;
+    int msg_w = mylcd_getstringsize(rb->str(LANG_WAIT), NULL, NULL);
+    int x = (LCD_WIDTH - msg_w) / 2;
 #ifdef HAVE_LCD_COLOR
     mylcd_set_foreground(pf_fg_color);
 #else
     mylcd_set_foreground(G_BRIGHT(255));
 #endif
     int char_height = rb->screens[SCREEN_MAIN]->getcharheight();
+    int row_h = pf_track_row_height();
     track_list_yh(char_height);
-    mylcd_putsxy(x, pf_tracks.list_y + (pf_tracks.list_h  - char_height) / 2,
-                 rb->str(LANG_WAIT));
+
+    int msg_y = pf_tracks.list_y + (pf_tracks.list_h - row_h) / 2;
+    mylcd_putsxy(x, msg_y, rb->str(LANG_WAIT));
+
+    /* Apple2026 loading grammar: centered thin neutral indicator under label */
+    int bar_w = LCD_WIDTH - 80;
+    if (bar_w > 240)
+        bar_w = 240;
+    if (bar_w < 80)
+        bar_w = 80;
+    int bar_x = (LCD_WIDTH - bar_w) / 2;
+    int bar_y = msg_y + row_h + 8;
+#ifdef HAVE_LCD_COLOR
+    mylcd_set_foreground(N_PIX(229, 229, 234));
+#else
+    mylcd_set_foreground(G_BRIGHT(170));
+#endif
+    mylcd_fillrect(bar_x, bar_y, bar_w, 2);
+
     draw_album_text();
     mylcd_update();
     pf_clear_display();
@@ -4248,11 +4306,15 @@ static bool show_track_list(void)
         reset_track_list();
     }
     int titletxt_w, titletxt_x, color, titletxt_h;
-    titletxt_h = rb->screens[SCREEN_MAIN]->getcharheight();
+    titletxt_h = pf_tracks.list_row_h > 0 ? pf_tracks.list_row_h
+                 : rb->screens[SCREEN_MAIN]->getcharheight();
 
     int titletxt_y = pf_tracks.list_y;
     int track_i;
     int fade;
+
+    if (pf_tracklist_font_id >= 0)
+        rb->lcd_setfont(pf_tracklist_font_id);
 
     track_i = pf_tracks.list_start;
     for (; track_i < pf_tracks.list_visible + pf_tracks.list_start; track_i++)
@@ -4285,6 +4347,9 @@ static bool show_track_list(void)
         mylcd_putsxy(titletxt_x,titletxt_y,trackname);
         titletxt_y += titletxt_h;
     }
+
+    if (pf_tracklist_font_id >= 0)
+        rb->lcd_setfont(FONT_UI);
 
     return true;
 }
@@ -4498,7 +4563,7 @@ static void context_menu_cleanup(void)
 {
     FOR_NB_SCREENS(i)
         rb->viewportmanager_theme_undo(i, false);
-    rb->sb_set_persistent_title("Cover Flow", Icon_NOICON, SCREEN_MAIN);
+    rb->sb_set_persistent_title("", Icon_NOICON, SCREEN_MAIN);
     rb->lcd_set_viewport(&pf_vp);
     if (pf_state != pf_show_tracks)
         free_borrowed_tracks();
@@ -4609,6 +4674,7 @@ static bool start_playback(bool return_to_WPS)
             start_index = rb->playlist_shuffle(*rb->current_tick, pf_tracks.sel);
     }
     rb->playlist_start(start_index, 0, 0);
+    rb->global_status->playback_source = PLAYBACK_SOURCE_PICTUREFLOW;
     old_shuffle = shuffle;
 #ifdef USEGSLIB
     if (!return_to_WPS)
@@ -4675,6 +4741,10 @@ static void draw_album_text(void)
 #else
     mylcd_set_foreground(G_BRIGHT(c));
 #endif
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+    if (pf_album_title_font_id >= 0)
+        rb->lcd_setfont(pf_album_title_font_id);
+#endif
     bool album_changed = (albumtxt_index != prev_albumtxt_index
                          || pf_cfg.show_year != prev_show_year);
     if (album_changed) {
@@ -4720,6 +4790,10 @@ static void draw_album_text(void)
     } else {
         mylcd_putsxy(albumtxt_x, albumtxt_y, album_and_year);
     }
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+    if (pf_album_title_font_id >= 0)
+        rb->lcd_setfont(FONT_UI);
+#endif
 }
 
 /**
@@ -4824,6 +4898,17 @@ static bool init(void)
     pf_idx.buf_sz = buf_size;
 
     rb->lcd_setfont(FONT_UI);
+
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+    /* Tracklist 16 Regular; album/artist also 16 Regular — matches dense
+     * track-list font used in the Music file browser (Apple2026 font tier). */
+    {
+        int id = rb->font_load(ROCKBOX_DIR "/fonts/16-SFProText-Regular.fnt");
+        pf_tracklist_font_id = id >= 0 ? id : -1;
+        id = rb->font_load(ROCKBOX_DIR "/fonts/16-SFProText-Regular.fnt");
+        pf_album_title_font_id = id >= 0 ? id : -1;
+    }
+#endif
 
     if (!rb->dir_exists(CACHE_PREFIX))
     {
@@ -5140,8 +5225,9 @@ static int pictureflow_main(void)
                 reverse_animation();
             else if (pf_state == pf_cover_out)
                 skip_animation_to_idle_state();
+            /* Apple2026: idle back exits to main menu — WPS is not parent of grid */
             else if (pf_state == pf_idle || pf_state == pf_scrolling)
-                return PLUGIN_GOTO_WPS;
+                return PLUGIN_OK;
             break;
         case PF_MENU:
             if (pf_state == pf_show_tracks)
@@ -5158,7 +5244,7 @@ static int pictureflow_main(void)
             ret = main_menu();
             FOR_NB_SCREENS(i)
                 rb->viewportmanager_theme_undo(i, false);
-            rb->sb_set_persistent_title("Cover Flow", Icon_NOICON, SCREEN_MAIN);
+            rb->sb_set_persistent_title("", Icon_NOICON, SCREEN_MAIN);
             rb->lcd_set_viewport(&pf_vp);
 
             if (ret == -3)
@@ -5172,7 +5258,7 @@ static int pictureflow_main(void)
                 FOR_NB_SCREENS(i)
                     rb->viewportmanager_theme_enable(i,
                         pf_cfg.show_statusbar, NULL);
-                rb->sb_set_persistent_title("Cover Flow", Icon_NOICON, SCREEN_MAIN);
+                rb->sb_set_persistent_title("", Icon_NOICON, SCREEN_MAIN);
                 rb->lcd_set_viewport(&pf_vp);
 #ifdef HAVE_LCD_COLOR
                 mylcd_set_background(pf_bg_color);
@@ -5360,7 +5446,7 @@ enum plugin_status plugin_start(const void *parameter)
         /* Push theme state for main loop */
         FOR_NB_SCREENS(i)
             rb->viewportmanager_theme_enable(i, pf_cfg.show_statusbar, NULL);
-        rb->sb_set_persistent_title("Cover Flow", Icon_NOICON, SCREEN_MAIN);
+        rb->sb_set_persistent_title("", Icon_NOICON, SCREEN_MAIN);
         rb->lcd_set_viewport(&pf_vp);
 #ifdef HAVE_LCD_COLOR
         mylcd_set_background(pf_bg_color);
@@ -5369,6 +5455,12 @@ enum plugin_status plugin_start(const void *parameter)
         mylcd_set_drawmode(DRMODE_FG);
 
         set_initial_slide(file_id3 ? file : NULL); /* may call splash */
+#if PF_PLAYBACK_CAPABLE
+        /* Apple2026: WPS → Cover Flow lands on album tracklist, not idle grid */
+        if (rb->global_status->playback_source == PLAYBACK_SOURCE_PICTUREFLOW
+            && rb->audio_status())
+            skip_animation_to_show_tracks();
+#endif
         rb->button_clear_queue();
 #ifdef USEGSLIB
         grey_show(true);

@@ -1,16 +1,23 @@
 <p align="center">
-  <img src="screenshots/hero-image.jpeg" alt="Rockpod Hero Image" width="600">
-  <h1 align="center">Rockpod</h1>
+  <h1 align="center">Rockpod — UI/UX Overhaul</h1>
   <p align="center">
     Custom Rockbox firmware for iPod Classic and iPod Video.<br>
-    MFi digital audio, Cover Flow, dynamic colors.
+    Apple2026 theme · MFi digital audio · Cover Flow · dynamic colors.
   </p>
   <p align="center">
-    <a href="https://github.com/nuxcodes/rockpod/releases/latest"><img src="https://img.shields.io/github/v/release/nuxcodes/rockpod?style=flat-square&color=blue" alt="Latest Release"></a>
-    <br/>
-    <a href='https://ko-fi.com/B0B61UR8ZH' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi5.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+    <a href="https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul/releases/latest"><img src="https://img.shields.io/github/v/release/Poorfocus/Rockbox-UI-UX-Overhaul?style=flat-square&color=blue" alt="Latest Release"></a>
+    <img src="https://img.shields.io/badge/license-GPLv2-green?style=flat-square" alt="GPLv2">
+    <img src="https://img.shields.io/badge/educational%20use-font%20notice-orange?style=flat-square" alt="Educational Use">
   </p>
 </p>
+
+> **Attribution:** This project is a UI/UX research fork of
+> [Rockpod](https://github.com/nuxcodes/rockpod) by nuxcodes, which is itself
+> a fork of [Rockbox](https://www.rockbox.org). All upstream copyright notices
+> are preserved. See [NOTICE](NOTICE) for full licensing details.
+>
+> **Font notice:** Bitmap fonts derived from Apple SF Pro are included for
+> **educational and research purposes only**. See [NOTICE](NOTICE).
 
 ---
 
@@ -256,7 +263,7 @@ The repo includes third-party themes under `themes/`:
 
 > **Prerequisite:** Your iPod must already have the Rockbox bootloader installed. See the [Rockbox installation guide](https://www.rockbox.org/wiki/RockboxUtility) if needed.
 
-1. Download the correct zip from [Releases](https://github.com/nuxcodes/rockpod/releases/latest):
+1. Download the correct zip from [Releases](https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul/releases/latest):
    - `rockbox-ipod6g.zip` for iPod Classic (6G/7G)
    - `rockbox-ipodvideo-5g.zip` for iPod Video (5G/5.5G)
 2. Connect your iPod in disk mode
@@ -269,23 +276,9 @@ PictureFlow rebuilds its album art cache on first launch after upgrade. This is 
 
 ## Building from Source
 
-```bash
-# iPod Classic 6G (default, clean build)
-./build-hw.sh
+**See [`BUILD.md`](BUILD.md)** for all platforms: Windows PowerShell (`build-hw.ps1`, `build-sim.ps1`, `rockpod.ps1`), Unix/macOS (`build-hw.sh`, `build-sim.sh`), incremental builds, outputs (`build-hw-<target>/rockbox.zip`, `build-sim/rockboxui.exe`), and toolchain notes (`tools/rockboxdev.sh`).
 
-# iPod Video 5G (clean build)
-./build-hw.sh 5g
-
-# Incremental rebuild
-cd build-hw-ipod6g && make -j$(sysctl -n hw.ncpu) && make zip
-cd build-hw-ipodvideo && make -j$(sysctl -n hw.ncpu) && make zip
-
-# Simulator (6G)
-./build-sim.sh
-cd build-sim && ./rockboxui
-```
-
-`build-hw.sh` accepts `ipod6g` / `6g` (default) or `ipodvideo` / `5g`. Output goes to `build-hw-<target>/`. Cross-compiler toolchains: `tools/rockboxdev.sh`.
+**Fonts:** The Inter `.fnt` files are included. SF Pro fonts are included in this build for educational purposes. To regenerate them from your own Apple font files, run `python tools/apple2026_rebuild_fonts_from_otf.py`. See [`fonts/FONTS.md`](fonts/FONTS.md).
 
 ---
 
@@ -311,9 +304,18 @@ cd build-sim && ./rockboxui
 
 Built on the work of the [Rockbox](https://www.rockbox.org/) project and its contributors.
 
+- **Upstream fork:** [Rockpod](https://github.com/nuxcodes/rockpod) by nuxcodes — MFi digital audio, Cover Flow, SSD power management
 - **Themes:** adwaitapod_dark_simplified and Themify 2 by [Dook](https://github.com/D0-0K) (CC-BY-SA)
 - **MFi reference:** [ipod-gadget](https://github.com/oandrew/ipod-gadget) descriptor layout, [rockbox-mojyack](https://github.com/mojyack/rockbox) iPod 5G iAP implementation, Apple MFi Accessory Firmware Specification
+- **Inter typeface:** by Rasmus Andersson (SIL OFL 1.1) — https://rsms.me/inter/
 
 ## License
 
-[GNU General Public License v2.0](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+[GNU General Public License v2.0](LICENSE)
+
+This project is distributed under the GPLv2, the same license as upstream Rockbox and Rockpod.
+All existing copyright notices are preserved in their respective source files.
+
+**Font notice:** Bitmap fonts derived from Apple SF Pro / SF Compact are included for
+educational and research purposes only and are not covered by the GPLv2. See [NOTICE](NOTICE)
+for details.

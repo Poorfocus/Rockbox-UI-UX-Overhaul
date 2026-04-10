@@ -21,6 +21,7 @@
 
 #ifndef _GUI_ICON_H_
 #define _GUI_ICON_H_
+#include "config.h"
 #include "screen_access.h"
 /* Defines a type for the icons since it's not the same thing on
  * char-based displays and bitmap displays */
@@ -63,6 +64,10 @@ enum themable_icons {
     Icon_file_view_menu,
     Icon_EQ,
     Icon_Rockbox,
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    Icon_Artist,
+    Icon_Album,
+#endif
     Icon_Last_Themeable,
 };
 

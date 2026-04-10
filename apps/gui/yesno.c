@@ -32,6 +32,9 @@
 #include "splash.h"
 #include "backlight.h"
 #include "statusbar-skinned.h"
+#ifdef ROCKPOD_APPLE2026_IPOD
+#include "apple2026_shell.h"
+#endif
 
 struct gui_yesno
 {
@@ -106,7 +109,7 @@ static void gui_yesno_draw(struct gui_yesno * yn)
         const char *btn_fmt;
         int rect_w = vp->width/2, rect_h = vp->height/2;
         int old_pattern = vp->fg_pattern;
-        vp->fg_pattern = LCD_RGBPACK(0,255,0);
+        vp->fg_pattern = LCD_RGBPACK(208,208,212);
         display->drawrect(0, rect_h, rect_w, rect_h);
         display->getstringsize(str(LANG_SET_BOOL_YES), &w, &h);
 
@@ -125,7 +128,7 @@ static void gui_yesno_draw(struct gui_yesno * yn)
         display->putsxyf((rect_w-(w+tmo_w))/2, rect_h+(rect_h-h)/2,
                          btn_fmt, str(LANG_SET_BOOL_YES), tm_rem);
 
-        vp->fg_pattern = LCD_RGBPACK(255,0,0);
+        vp->fg_pattern = LCD_RGBPACK(158,158,166);
         display->drawrect(rect_w, rect_h, rect_w, rect_h);
         display->getstringsize(str(LANG_SET_BOOL_NO), &w, &h);
 
@@ -152,6 +155,48 @@ static void gui_yesno_draw(struct gui_yesno * yn)
     {
         if(line_shift + 3 <= vp_lines)
             line_shift++;
+#if ROCKPOD_APPLE2026_IPOD
+        /* Apple2026: draw a separator hairline then two button labels in the lower
+         * portion of the dialog viewport — "Cancel" (gray, left) and "OK" (accent, right). */
+        if (display->depth >= 16)
+        {
+            int sep_y = (line_shift) * display->getcharheight() - 1;
+            if (sep_y < 0) sep_y = 0;
+
+            display->set_drawmode(DRMODE_FG);
+            display->set_foreground(LCD_RGBPACK(0xC6, 0xC6, 0xC8));
+            display->hline(0, vp->width - 1, sep_y);
+
+            int btn_y = sep_y + 4;
+            int btn_h = display->getcharheight();
+
+            /* Cancel button — left, gray */
+            display->set_foreground(LCD_RGBPACK(0x6E, 0x6E, 0x73));
+            display->putsxy(8, btn_y, str(LANG_CANCEL_WITH_ANY));
+
+            /* OK / Confirm button — right, accent red */
+            display->set_foreground(LCD_RGBPACK(0xFF, 0x2D, 0x55));
+            {
+                int w = 0;
+                display->getstringsize(str(LANG_CONFIRM_WITH_BUTTON), &w, NULL);
+                display->putsxy(vp->width - w - 8, btn_y, str(LANG_CONFIRM_WITH_BUTTON));
+            }
+            (void)btn_h;
+
+            if (def_res == YESNO_YES || def_res == YESNO_NO)
+            {
+                int tm_rem = ((yn->end_tick - current_tick) / 100);
+                if (def_res == YESNO_YES)
+                    display->putsf(0, line_shift, "%s (%02d)",
+                                   str(LANG_CONFIRM_WITH_BUTTON), tm_rem);
+                else
+                    display->putsf(0, line_shift + 1, "%s (%02d)",
+                                   str(LANG_CANCEL_WITH_ANY), tm_rem);
+            }
+        }
+        else
+#endif /* ROCKPOD_APPLE2026_IPOD */
+        {
         display->puts(0, line_shift, str(LANG_CONFIRM_WITH_BUTTON));
         display->puts(0, line_shift+1, str(LANG_CANCEL_WITH_ANY));
 
@@ -164,6 +209,7 @@ static void gui_yesno_draw(struct gui_yesno * yn)
             else
                 display->putsf(0, line_shift+1, "%s (%02d)",
                                str(LANG_CANCEL_WITH_ANY), tm_rem);
+        }
         }
     }
 #endif

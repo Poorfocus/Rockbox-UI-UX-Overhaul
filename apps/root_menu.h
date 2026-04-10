@@ -68,6 +68,9 @@ enum {
 #ifdef HAVE_TAGCACHE
     GO_TO_PICTUREFLOW,
 #endif
+    /* Apple2026: browse Picard library at /Music (distinct from full storage). */
+    GO_TO_MUSICLIB,
+    GO_TO_EQUALIZER,
 };
 #ifndef PLUGIN
 extern struct menu_item_ex root_menu_;
@@ -76,6 +79,31 @@ void root_menu_load_from_cfg(void* setting, char *value);
 char* root_menu_write_to_cfg(void* setting, char*buf, int buf_len);
 void root_menu_set_default(void* setting, void* defaultval);
 bool root_menu_is_changed(void* setting, void* defaultval);
+
+/* Apple2026: true when WPS was entered from the root menu (Now Playing /
+ * resume) rather than from a browse-to-play chain.  wps_handle_browse_parent
+ * checks this so "back from WPS" returns to Main Menu instead of re-opening
+ * the stale playback_source chain the user already backed out of. */
+extern bool wps_entered_from_root;
+
+/* Apple2026: two-tier list font system.
+ *
+ * NORMAL (18pt SFProText Regular) — navigational lists:
+ *   main menu, settings, database top-level categories, music artist folders
+ *
+ * DENSE  (16pt SFProText Regular) — content/track lists:
+ *   song files inside album folders, playlist viewer, database track results
+ *   Cover Flow tracklist uses its own font load (pictureflow.c) but matches.
+ *
+ * Set by root_menu.c at surface dispatch and by tree.c on depth change.
+ * Read by list.c to select font + row floor (32px normal / 28px dense).
+ */
+typedef enum {
+    ROCKPOD_LIST_FONT_NORMAL = 0,
+    ROCKPOD_LIST_FONT_DENSE  = 1,
+} rockpod_list_font_tier_t;
+
+extern rockpod_list_font_tier_t rockpod_list_font_tier;
 #endif
 
 

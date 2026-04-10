@@ -42,6 +42,9 @@
 #include "playlist.h"
 #include "misc.h"
 #include "icons.h"
+#ifdef ROCKPOD_APPLE2026_IPOD
+#include "apple2026_shell.h"
+#endif
 
 #include "bitmaps/usblogo.h"
 
@@ -155,7 +158,8 @@ static void usb_screen_fix_viewports(struct screen *screen,
         logo_height = parent->height;
 
     *logo = *parent;
-    logo->x = parent->x + parent->width - logo_width;
+    /* Apple2026 continuity: center USB logo in shell viewport */
+    logo->x = parent->x + (parent->width - logo_width) / 2;
 #ifdef HAVE_LCD_SPLIT
     switch (statusbar_position(screen))
     {
@@ -228,6 +232,22 @@ static void usb_screens_draw(struct usb_screen_vps_t *usb_screen_vps_ar)
         screen->bmp(logos[i], 0, 0);
         if (i == SCREEN_MAIN)
         {
+#if ROCKPOD_APPLE2026_IPOD
+            /* Apple2026: draw "Connected" label below logo in SF-like style. */
+            if (screen->depth >= 16)
+            {
+                int label_y = logo->y + logo->height + 12;
+                int lh = font_get(logo->font)->height;
+                struct viewport label_vp = *parent;
+                label_vp.y = label_y;
+                label_vp.height = lh * 2 + 4;
+                label_vp.flags |= VP_FLAG_ALIGN_CENTER;
+                screen->set_foreground(LCD_RGBPACK(0x6E, 0x6E, 0x73));
+                screen->set_viewport(&label_vp);
+                screen->puts_scroll(0, 0, "Connected");
+                screen->set_viewport(parent);
+            }
+#endif
 #ifdef USB_ENABLE_HID
             if (usb_hid)
             {

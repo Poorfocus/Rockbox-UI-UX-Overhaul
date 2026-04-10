@@ -118,10 +118,21 @@ static int reset_color(void)
 {
     global_settings.fg_color = LCD_DEFAULT_FG;
     global_settings.bg_color = LCD_DEFAULT_BG;
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Apple2026 WPSLIST: flat bar selector E5E5EA */
+    global_settings.lss_color = LCD_RGBPACK(0xE5, 0xE5, 0xEA);
+    global_settings.lse_color = LCD_RGBPACK(0xE5, 0xE5, 0xEA);
+#else
     global_settings.lss_color = LCD_DEFAULT_LS;
     global_settings.lse_color = LCD_DEFAULT_BG;
+#endif
     global_settings.lst_color = LCD_DEFAULT_FG;
-    global_settings.list_separator_color = LCD_DARKGRAY;
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* DESIGN_SYSTEM: iOS hairline separator ~C7C7CC */
+    global_settings.list_separator_color = LCD_RGBPACK(199, 199, 204);
+#else
+    global_settings.list_separator_color = LCD_LIGHTGRAY;
+#endif
     global_settings.colors_file[0] = '-';
     global_settings.colors_file[1] = '\0';
 

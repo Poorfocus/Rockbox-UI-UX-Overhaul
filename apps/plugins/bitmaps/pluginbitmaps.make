@@ -9,7 +9,7 @@
 
 PBMPINCDIR = $(BUILDDIR)/pluginbitmaps
 
-PFLAGS += -I$(PBMPINCDIR)
+INCLUDES += -I$(PBMPINCDIR)
 
 ifneq ($(strip $(BMP2RB_MONO)),)
 PBMP = $(call preprocess, $(APPSDIR)/plugins/bitmaps/mono/SOURCES)
@@ -44,18 +44,18 @@ $(PLUGINBITMAPLIB): $(PLUGIN_BITMAPS)
 # pattern rules to create .c files from .bmp, one for each subdir:
 $(BUILDDIR)/apps/plugins/bitmaps/mono/%.c: $(ROOTDIR)/apps/plugins/bitmaps/mono/%.bmp $(TOOLSDIR)/bmp2rb
 	$(SILENT)mkdir -p $(dir $@) $(PBMPINCDIR)
-	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_MONO) -b -h $(PBMPINCDIR) $< > $@
+	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_MONO) -b -h pluginbitmaps $< > $(BUILDDIR)/apps/plugins/bitmaps/mono/$*.c
 
 $(BUILDDIR)/apps/plugins/bitmaps/native/%.c: $(ROOTDIR)/apps/plugins/bitmaps/native/%.bmp $(TOOLSDIR)/bmp2rb
 	$(SILENT)mkdir -p $(dir $@) $(PBMPINCDIR)
-	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_NATIVE) -b -h $(PBMPINCDIR) $< > $@
+	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_NATIVE) -b -h pluginbitmaps $< > $(BUILDDIR)/apps/plugins/bitmaps/native/$*.c
 
 $(BUILDDIR)/apps/plugins/bitmaps/remote_mono/%.c: $(ROOTDIR)/apps/plugins/bitmaps/remote_mono/%.bmp $(TOOLSDIR)/bmp2rb
 	$(SILENT)mkdir -p $(dir $@) $(PBMPINCDIR)
-	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_REMOTEMONO) -b -h $(PBMPINCDIR) $< > $@
+	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_REMOTEMONO) -b -h pluginbitmaps $< > $(BUILDDIR)/apps/plugins/bitmaps/remote_mono/$*.c
 
 $(BUILDDIR)/apps/plugins/bitmaps/remote_native/%.c: $(ROOTDIR)/apps/plugins/bitmaps/remote_native/%.bmp $(TOOLSDIR)/bmp2rb
 	$(SILENT)mkdir -p $(dir $@) $(PBMPINCDIR)
-	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_REMOTENATIVE) -b -h $(PBMPINCDIR) $< > $@
+	$(call PRINTS,BMP2RB $(<F))$(BMP2RB_REMOTENATIVE) -b -h pluginbitmaps $< > $(BUILDDIR)/apps/plugins/bitmaps/remote_native/$*.c
 
 endif

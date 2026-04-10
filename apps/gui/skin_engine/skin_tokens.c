@@ -1115,6 +1115,14 @@ const char *get_token_value(struct gui_wps *gwps,
             goto gtv_ret_numeric_tag_info;
         case SKIN_TOKEN_LIST_TITLE_TEXT:
             return sb_get_title(gwps->display->screen_type);
+        case SKIN_TOKEN_LIST_TITLE_IS_ROOT:
+        {
+            const char *t = sb_get_title(gwps->display->screen_type);
+            const char *root = P2STR(ID2P(LANG_ROCKBOX_TITLE));
+            if (!t || !root)
+                return NULL;
+            return !strcmp(t, root) ? "s" : NULL;
+        }
         case SKIN_TOKEN_LIST_TITLE_ICON:
             numeric_ret = sb_get_icon(gwps->display->screen_type);
             itoa_buf(buf, buf_size, numeric_ret);

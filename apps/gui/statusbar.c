@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include <stdio.h>
 #include "config.h"
+#include "apple2026_shell.h"
 #include "font.h"
 #include "kernel.h"
 #include "string.h" /* for memcmp oO*/
@@ -398,7 +399,11 @@ static void gui_statusbar_icon_battery(struct screen * display, int percent,
         if (display->depth > 1)
         {
             prevfg = display->get_foreground();
+#if ROCKPOD_APPLE2026_IPOD
+            display->set_foreground(A26_BATTERY_REMAIN);
+#else
             display->set_foreground(LCD_DARKGRAY);
+#endif
         }
 #endif
         display->fillrect(STATUSBAR_BATTERY_X_POS + 1 + fill, STATUSBAR_Y_POS + 1,

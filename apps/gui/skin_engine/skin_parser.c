@@ -2463,6 +2463,7 @@ static int skin_element_callback(struct skin_element* element, void* data)
                     function = parse_statusbar_tags;
                     break;
                 case SKIN_TOKEN_LIST_TITLE_TEXT:
+                case SKIN_TOKEN_LIST_TITLE_IS_ROOT:
 #ifndef __PCTOOL__
                     sb_skin_has_title(curr_screen);
 #endif

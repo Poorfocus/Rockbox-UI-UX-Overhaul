@@ -54,7 +54,7 @@ FAMILY_PLANS: List[FamilyPlan] = [
         family_slug="SFProDisplay",
         family_type="display",
         source_dir=ROOT / "Apple Fonts" / "SF Pro",
-        sizes=list(range(19, 26)),
+        sizes=list(range(19, 36)),
         weights={
             "Regular": "SF-Pro-Display-Regular.otf",
             "Medium": "SF-Pro-Display-Medium.otf",
@@ -80,7 +80,7 @@ FAMILY_PLANS: List[FamilyPlan] = [
         family_slug="SFProText",
         family_type="text",
         source_dir=ROOT / "Apple Fonts" / "SF Pro",
-        sizes=list(range(12, 20)) + [10, 11],
+        sizes=list(range(12, 23)) + [10, 11],
         weights={
             "Regular": "SF-Pro-Text-Regular.otf",
             "Medium": "SF-Pro-Text-Medium.otf",

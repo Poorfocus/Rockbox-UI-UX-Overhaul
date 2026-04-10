@@ -32,17 +32,10 @@ $(BUILDDIR)/lang/max_language_size.h: $(LANGOBJ) $(BUILDDIR)/apps/lang/voicestri
 $(BUILDDIR)/lang/lang_core.o: $(BUILDDIR)/lang/lang.h $(BUILDDIR)/lang/lang_core.c
 	$(call PRINTS,CC lang_core.c)$(CC) $(CFLAGS) -c $(BUILDDIR)/lang/lang_core.c -o $@
 
-# genlang creates *both* lang.c and lang.h but in Make there is no wat to express this rule
-# (multiple target rules DO NOT express that, they are a simple shortcut for multiple rules)
-# instead we pretend that genlang create lang_core.c and that lang.c depends from lang.h
-# it will work fine as long as one never manually removes lang.c and not lang.h, and it will avoid
-# race conditions such as running genlang twice or worse in parallel with other things!
-$(BUILDDIR)/lang/lang.h: $(APPSDIR)/lang/$(ENGLISH).lang $(BUILDDIR)/apps/genlang-features $(TOOLSDIR)/genlang
+$(BUILDDIR)/lang/lang.h $(BUILDDIR)/lang/lang_core.c $(BUILDDIR)/lang_enum.h &: \
+	$(APPSDIR)/lang/$(ENGLISH).lang $(BUILDDIR)/apps/genlang-features $(TOOLSDIR)/genlang
 	$(call PRINTS,GEN lang.h)
-	$(SILENT)$(TOOLSDIR)/genlang -e=$(APPSDIR)/lang/$(ENGLISH).lang -p=$(BUILDDIR)/lang -t=$(MODELNAME):`cat $(BUILDDIR)/apps/genlang-features` $<
-$(BUILDDIR)/lang/lang_core.c: $(BUILDDIR)/lang/lang.h $(TOOLSDIR)/genlang
-
-$(BUILDDIR)/lang_enum.h: $(BUILDDIR)/lang/lang.h $(TOOLSDIR)/genlang
+	$(SILENT)$(TOOLSDIR)/genlang -e=$(APPSDIR)/lang/$(ENGLISH).lang -p=lang -t=$(MODELNAME):`cat $(BUILDDIR)/apps/genlang-features` $<
 
 # NOTE: for some weird reasons in GNU make, multi targets rules WITH patterns actually express
 # the fact that the two files are created as the result of one invocation of the rule

@@ -43,9 +43,17 @@
 #include "debug.h"
 #include "line.h"
 #include "../skin_engine/skin_albumart_color.h"
+#include "apple2026_shell.h"
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#include "root_menu.h"
+/* Reference to the dense font loaded in apps/gui/list.c */
+extern int apple2026_dense_font_id;
+extern void apple2026_ensure_dense_font(void);
+#endif
 
-#define ICON_PADDING 1
-#define ICON_PADDING_S "1"
+/* Figma 1:4008: 29px icon cell + 12px to label; 30px tile + 6+6 pad = 42px to text. */
+#define ICON_PADDING 6
+#define ICON_PADDING_S "6"
 
 #ifdef HAVE_TOUCHSCREEN
 /* used in gui_synclist->scroll_mode */
@@ -139,6 +147,73 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
     {
         display->put_line(x, y, linedes, "$*s$*t", item_indent, item_offset, dsp_text);
     }
+
+#ifdef HAVE_LCD_COLOR
+    if (!is_title && display->depth >= 16)
+    {
+        int vp_w = list_info->vp->width;
+        int line_h = linedes->height;
+        unsigned old_fg = display->get_foreground();
+
+#if ROCKPOD_APPLE2026_IPOD
+        /* Inset separator: erase the left portion (content inset + icon column)
+         * so dividers start at the text column, matching Apple Music. */
+        if (have_icons && global_settings.list_separator_height > 0 && line_h > 1)
+        {
+            int inset_w = A26_LIST_CONTENT_INSET + list_info->icon_width + ICON_PADDING;
+            display->set_drawmode(DRMODE_SOLID);
+            display->set_foreground(list_info->vp->bg_pattern);
+            display->fillrect(0, y + line_h - 1, inset_w, 1);
+        }
+#else
+        /* Inset separator: cover the icon-column portion of the bottom hairline
+         * so dividers appear to start at the text column (Apple Music style).
+         * Only runs when icons are present and a separator is configured. */
+        if (have_icons && global_settings.list_separator_height > 0 && line_h > 1)
+        {
+            display->set_drawmode(DRMODE_SOLID);
+            display->set_foreground(list_info->vp->bg_pattern);
+            display->fillrect(0, y + line_h - 1, list_info->icon_width, 1);
+        }
+#endif
+
+        /* Apple2026 disclosure chevron: anti-aliased ">" at right margin.
+         * 6x12px drawn with per-pixel AA against white background.
+         * Main stroke: C7C7CC. AA edges: E3E3E5 (50% blend towards white). */
+        {
+            int cw = 6, ch = 12;
+            int cx = vp_w - cw - 10;
+            int cy = y + (line_h - ch) / 2;
+            unsigned c_main = LCD_RGBPACK(0xC7, 0xC7, 0xCC);
+            unsigned c_aa   = LCD_RGBPACK(0xE3, 0xE3, 0xE5);
+
+            static const signed char chev[][3] = {
+                /* {dx, dy, is_aa} — top arm descending to apex */
+                {0,0,1},{1,0,0},     /* row 0 */
+                {1,1,1},{2,1,0},     /* row 1 */
+                {2,2,1},{3,2,0},     /* row 2 */
+                {3,3,1},{4,3,0},     /* row 3 */
+                {4,4,1},{5,4,0},     /* row 4 */
+                {5,5,0},             /* row 5 — apex top */
+                {5,6,0},             /* row 6 — apex bottom */
+                /* bottom arm ascending from apex */
+                {4,7,0},{5,7,1},     /* row 7 */
+                {3,8,0},{4,8,1},     /* row 8 */
+                {2,9,0},{3,9,1},     /* row 9 */
+                {1,10,0},{2,10,1},   /* row 10 */
+                {0,11,0},{1,11,1},   /* row 11 */
+            };
+
+            display->set_drawmode(DRMODE_FG);
+            for (int i = 0; i < (int)(sizeof(chev)/sizeof(chev[0])); i++)
+            {
+                display->set_foreground(chev[i][2] ? c_aa : c_main);
+                display->drawpixel(cx + chev[i][0], cy + chev[i][1]);
+            }
+        }
+        display->set_foreground(old_fg);
+    }
+#endif
 }
 
 static bool draw_title(struct screen *display,
@@ -218,6 +293,22 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         callback_draw_item = _default_listdraw_fn;
 
     struct viewport * last_vp = display->set_viewport(parent);
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Apple2026: switch to dense 16pt font for track/song lists.
+     * We set the viewport font to the dense font slot so all text in this
+     * draw pass uses it; restore FONT_UI after drawing is complete. */
+    int apple2026_saved_font = -1;
+    if (rockpod_list_font_tier == ROCKPOD_LIST_FONT_DENSE)
+    {
+        apple2026_ensure_dense_font();
+        if (apple2026_dense_font_id >= 0)
+        {
+            apple2026_saved_font = lcd_getfont();
+            lcd_setfont(apple2026_dense_font_id);
+            parent->font = apple2026_dense_font_id;
+        }
+    }
+#endif
 #if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
     /* Trigger extraction if pending — uses last known AA slot from SBS.
      * This ensures colors are ready before list draws, even on first frame
@@ -320,6 +411,21 @@ void list_draw(struct screen *display, struct gui_synclist *list)
             int scrollbar_min = list->y_pos;
             int scrollbar_max = list->y_pos + list_text_vp->height;
 #endif
+#if ROCKPOD_APPLE2026_IPOD
+            if (display->depth >= 16)
+            {
+                unsigned old_fg = display->get_foreground();
+                unsigned old_bg = display->get_background();
+                display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_RAIL));
+                display->set_background(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_RAIL));
+                gui_scrollbar_draw(display,
+                        (scrollbar_in_left? 0: 1), 0, SCROLLBAR_WIDTH-1, vp.height,
+                        scrollbar_items, scrollbar_min, scrollbar_max, VERTICAL);
+                display->set_foreground(old_fg);
+                display->set_background(old_bg);
+            }
+            else
+#endif
             gui_scrollbar_draw(display,
                     (scrollbar_in_left? 0: 1), 0, SCROLLBAR_WIDTH-1, vp.height,
                     scrollbar_items, scrollbar_min, scrollbar_max, VERTICAL);
@@ -331,6 +437,12 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         else if (VP_IS_RTL(list_text_vp) && scrollbar_in_right)
             indent += SCROLLBAR_WIDTH;
     }
+
+#if ROCKPOD_APPLE2026_IPOD
+    /* SBS list viewport is full LCD width so selector + dividers are edge-to-edge;
+     * keep icons/text aligned with the large-title margin. */
+    indent += A26_LIST_CONTENT_INSET;
+#endif
 
     display->set_viewport(list_text_vp);
     int icon_w = list_icon_width(screen);
@@ -479,6 +591,14 @@ void list_draw(struct screen *display, struct gui_synclist *list)
     }
     else
         display->update_viewport();
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Restore font if we switched to dense tier */
+    if (apple2026_saved_font >= 0)
+    {
+        lcd_setfont(apple2026_saved_font);
+        parent->font = apple2026_saved_font;
+    }
+#endif
     display->set_viewport(last_vp);
 }
 

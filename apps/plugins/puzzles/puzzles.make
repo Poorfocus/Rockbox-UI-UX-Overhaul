@@ -17,10 +17,13 @@ PUZZLES_GAMES_SRC = $(call preprocess, $(PUZZLES_SRCDIR)/SOURCES.games)
 PUZZLES_GAMES_OBJ = $(call c2obj, $(PUZZLES_GAMES_SRC))
 
 PUZZLES_HELP_SRC = $(wildcard $(PUZZLES_SRCDIR)/help/*)
-PUZZLES_HELP_OBJ = $(call c2obj, $(PUZZLES_HELP_OBJ))
+PUZZLES_HELP_OBJ = $(call c2obj, $(PUZZLES_HELP_SRC))
 
 PUZZLES_SRC = $(PUZZLES_GAMES_SRC) $(PUZZLES_SHARED_SRC) $(PUZZLES_HELP_SRC)
 PUZZLES_OBJ = $(call c2obj, $(PUZZLES_SRC))
+
+PUZZLES_FINISHED_GAMES = $(basename $(notdir $(filter-out $(PUZZLES_SRCDIR)/src/unfinished/%.c,$(PUZZLES_GAMES_SRC))))
+PUZZLES_UNFINISHED_GAMES = $(basename $(notdir $(filter $(PUZZLES_SRCDIR)/src/unfinished/%.c,$(PUZZLES_GAMES_SRC))))
 
 PUZZLES_ROCKS = $(addprefix $(PUZZLES_OBJDIR)/sgt-, $(notdir $(PUZZLES_GAMES_SRC:.c=.rock)))
 
@@ -44,19 +47,18 @@ PUZZLESFLAGS = -I$(PUZZLES_SRCDIR)/dummy $(filter-out			\
 		$(PUZZLES_SRCDIR)/rbcompat.h -ffunction-sections	\
 		-fdata-sections -w -Wl,--gc-sections
 
-$(PUZZLES_OBJDIR)/sgt-%.rock: $(PUZZLES_OBJDIR)/src/%.o $(PUZZLES_OBJDIR)/help/%.o $(PUZZLES_SHARED_OBJ) $(TLSFLIB)
-	$(call PRINTS,LD $(@F))$(CC) $(PLUGINFLAGS) -o $(PUZZLES_OBJDIR)/$*.elf \
-		$(filter %.o, $^) \
-		$(filter %.a, $+) \
-		-lgcc $(filter-out -Wl%.map, $(PLUGINLDFLAGS)) -Wl,$(LDMAP_OPT),$(PUZZLES_OBJDIR)/src/$*.map
-	$(SILENT)$(call objcopy_plugin,$(PUZZLES_OBJDIR)/$*.elf,$@)
+define PUZZLE_LINK_RULE
+$(PUZZLES_OBJDIR)/sgt-$(1).rock: $(PUZZLES_OBJDIR)/$(2)/$(1).o $(PUZZLES_OBJDIR)/help/$(1).o $(PUZZLES_SHARED_OBJ) $(TLSFLIB)
+	$$(SILENT)mkdir -p $$(dir $$@)
+	$$(call PRINTS,LD $$(@F))$$(CC) $$(PLUGINFLAGS) -o $(PUZZLES_OBJDIR)/$(1).elf \
+		$$(filter %.o, $$^) \
+		$$(filter %.a, $$+) \
+		-lgcc $$(filter-out -Wl%.map, $$(PLUGINLDFLAGS)) -Wl,$$(LDMAP_OPT),$(PUZZLES_OBJDIR)/src/$(1).map
+	$$(SILENT)$$(call objcopy_plugin,$(PUZZLES_OBJDIR)/$(1).elf,$$@)
+endef
 
-$(PUZZLES_OBJDIR)/sgt-%.rock: $(PUZZLES_OBJDIR)/src/unfinished/%.o $(PUZZLES_OBJDIR)/help/%.o $(PUZZLES_SHARED_OBJ) $(TLSFLIB)
-	$(call PRINTS,LD $(@F))$(CC) $(PLUGINFLAGS) -o $(PUZZLES_OBJDIR)/$*.elf \
-		$(filter %.o, $^) \
-		$(filter %.a, $+) \
-		-lgcc $(filter-out -Wl%.map, $(PLUGINLDFLAGS)) -Wl,$(LDMAP_OPT),$(PUZZLES_OBJDIR)/src/$*.map
-	$(SILENT)$(call objcopy_plugin,$(PUZZLES_OBJDIR)/$*.elf,$@)
+$(foreach game,$(PUZZLES_FINISHED_GAMES),$(eval $(call PUZZLE_LINK_RULE,$(game),src)))
+$(foreach game,$(PUZZLES_UNFINISHED_GAMES),$(eval $(call PUZZLE_LINK_RULE,$(game),src/unfinished)))
 
 $(PUZZLES_SRCDIR)/rbcompat.h:	$(APPSDIR)/plugin.h			\
 				$(APPSDIR)/plugins/lib/pluginlib_exit.h	\

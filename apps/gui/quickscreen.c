@@ -40,6 +40,9 @@
 #include "debug.h"
 #include "shortcuts.h"
 #include "appevents.h"
+#if ROCKPOD_APPLE2026_IPOD
+#include "apple2026_shell.h"
+#endif
 
  /* 1 top, 1 bottom, 2 on either side, 1 for the icons
   * if enough space, top and bottom have 2 lines */
@@ -221,6 +224,89 @@ static void gui_quickscreen_draw(const struct gui_quickscreen *qs,
     /* draw the icons */
     display->set_viewport(vp_icons);
 
+#if ROCKPOD_APPLE2026_IPOD
+    /* Apple2026 Quick Screen directional indicators: clean geometric arrows
+     * drawn pixel-by-pixel using system color tokens instead of 7x8 mono glyphs. */
+    if (display->depth >= 16)
+    {
+        unsigned arrow_col = LCD_RGBPACK(0x3C, 0x3C, 0x43); /* A26 tertiary */
+        unsigned arrow_aa  = LCD_RGBPACK(0x8E, 0x8E, 0x93); /* A26 secondary (AA) */
+        int cx = vp_icons->width  / 2;
+        int cy = vp_icons->height / 2;
+
+        display->set_drawmode(DRMODE_FG);
+        display->set_foreground(arrow_col);
+
+        /* Up arrow — 9px wide, 6px tall, centered horizontally at top */
+        if (qs->items[QUICKSCREEN_TOP] != NULL)
+        {
+            int ax = cx - 4, ay = 2;
+            /* pixel rows from tip to base */
+            static const signed char up_arrow[] = {
+                4,0, /* tip */
+                3,1,4,1,5,1,
+                2,2,3,2,4,2,5,2,6,2,
+                1,3,2,3,3,3,5,3,6,3,7,3,
+                0,4,1,4,7,4,8,4,
+                0,5,1,5,7,5,8,5, /* base row */
+            };
+            for (int k = 0; k < (int)(sizeof(up_arrow)/2); k++)
+                display->drawpixel(ax + up_arrow[k*2], ay + up_arrow[k*2+1]);
+        }
+
+        /* Down arrow — same shape, reflected */
+        if (qs->items[QUICKSCREEN_BOTTOM] != NULL)
+        {
+            int ax = cx - 4, ay = vp_icons->height - 8;
+            static const signed char dn_arrow[] = {
+                0,0,1,0,7,0,8,0,
+                0,1,1,1,7,1,8,1,
+                1,2,2,2,3,2,5,2,6,2,7,2,
+                2,3,3,3,4,3,5,3,6,3,
+                3,4,4,4,5,4,
+                4,5,
+            };
+            for (int k = 0; k < (int)(sizeof(dn_arrow)/2); k++)
+                display->drawpixel(ax + dn_arrow[k*2], ay + dn_arrow[k*2+1]);
+        }
+
+        /* Right arrow — 6px wide, 9px tall */
+        if (qs->items[QUICKSCREEN_RIGHT] != NULL)
+        {
+            int ax = vp_icons->width - 8, ay = cy - 4;
+            static const signed char rt_arrow[] = {
+                0,4,
+                0,3,1,3,1,5,
+                0,2,1,2,2,2,2,6,1,6,
+                0,1,1,1,2,1,3,1,3,7,2,7,1,7,
+                0,0,1,0,2,0,3,0,4,0,4,8,3,8,2,8,1,8,
+                5,4,
+            };
+            for (int k = 0; k < (int)(sizeof(rt_arrow)/2); k++)
+                display->drawpixel(ax + rt_arrow[k*2], ay + rt_arrow[k*2+1]);
+        }
+
+        /* Left arrow */
+        if (qs->items[QUICKSCREEN_LEFT] != NULL)
+        {
+            int ax = 2, ay = cy - 4;
+            static const signed char lt_arrow[] = {
+                5,4,
+                4,3,5,3,4,5,5,5,
+                3,2,4,2,5,2,3,6,4,6,5,6,
+                2,1,3,1,4,1,5,1,2,7,3,7,4,7,5,7,
+                1,0,2,0,3,0,4,0,5,0,1,8,2,8,3,8,4,8,5,8,
+                0,4,
+            };
+            for (int k = 0; k < (int)(sizeof(lt_arrow)/2); k++)
+                display->drawpixel(ax + lt_arrow[k*2], ay + lt_arrow[k*2+1]);
+        }
+
+        display->set_foreground(arrow_col);
+    }
+    else
+#endif /* ROCKPOD_APPLE2026_IPOD */
+    {
     if (qs->items[QUICKSCREEN_TOP] != NULL)
     {
         display->mono_bitmap(bitmap_icons_7x8[Icon_UpArrow],
@@ -240,6 +326,7 @@ static void gui_quickscreen_draw(const struct gui_quickscreen *qs,
     {
         display->mono_bitmap(bitmap_icons_7x8[Icon_DownArrow],
             (vp_icons->width/2) - 4, vp_icons->height - 8, 7, 8);
+    }
     }
 
     display->set_viewport(parent);
