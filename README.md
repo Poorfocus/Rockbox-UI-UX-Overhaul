@@ -1,14 +1,11 @@
 <p align="center">
-  <h1 align="center">Rockpod — UI/UX Overhaul</h1>
-  <p align="center">
-    Custom Rockbox firmware for iPod Classic and iPod Video.<br>
-    Apple2026 theme · MFi digital audio · Cover Flow · dynamic colors.
-  </p>
-  <p align="center">
-    <a href="https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul/releases/latest"><img src="https://img.shields.io/github/v/release/Poorfocus/Rockbox-UI-UX-Overhaul?style=flat-square&color=blue" alt="Latest Release"></a>
-    <img src="https://img.shields.io/badge/license-GPLv2-green?style=flat-square" alt="GPLv2">
-    <img src="https://img.shields.io/badge/educational%20use-font%20notice-orange?style=flat-square" alt="Educational Use">
-  </p>
+  <img src="WhatsOldisNewAgain.png" alt="Whats Old is New Again — Rockbox UI/UX Overhaul" width="720">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul/releases/latest"><img src="https://img.shields.io/github/v/release/Poorfocus/Rockbox-UI-UX-Overhaul?style=flat-square&color=blue" alt="Latest Release"></a>
+  <img src="https://img.shields.io/badge/license-GPLv2-green?style=flat-square" alt="GPLv2">
+  <img src="https://img.shields.io/badge/educational%20use-font%20notice-orange?style=flat-square" alt="Educational Use">
 </p>
 
 > **Attribution:** This project is a UI/UX research fork of
@@ -105,18 +102,6 @@ Key files:
 
 Stock PictureFlow shows 3 slides, uses hardcoded colors, and is buried in the plugins menu. Rockpod rewrites the renderer to match Apple's Cover Flow — 7 visible slides w/ uniform tilt angle, custom theme integration, status bar toggle, faster transitions — and promotes it to a top-level menu entry.
 
-<!-- TODO: Add before/after screenshot — stock PictureFlow vs Rockpod Cover Flow -->
-
-|                     Cover Flow                     |                        Full-screen mode                         |
-| :------------------------------------------------: | :-------------------------------------------------------------: |
-| <img src="screenshots/cover-flow.png" width="280"> | <img src="screenshots/cover-flow-no-statusbar.png" width="280"> |
-|                   Status bar on                    |                     Status bar toggled off                      |
-
-|                          Track list                          |                      Display settings                       |
-| :----------------------------------------------------------: | :---------------------------------------------------------: |
-| <img src="screenshots/cover-flow-tracklist.png" width="280"> | <img src="screenshots/cover-flow-settings.png" width="280"> |
-|             Title only — no track number prefix              |                Slide tuck, crossfade, speed                 |
-
 - **Theme-aware colors** — slide edges and backgrounds fade toward your theme's background color, not hardcoded black
 - **Status bar support** — integrates with the SBS status bar, showing "Cover Flow" in the title bar. Can be toggled off for full-screen mode
 - **7 visible slides w/ parallel slide rendering** — matching Apple's Cover Flow projection
@@ -131,11 +116,6 @@ Stock PictureFlow shows 3 slides, uses hardcoded colors, and is buried in the pl
 ### Dynamic Colors
 
 The UI automatically extracts dominant and accent colors from the currently playing album art and applies them across all skinnable screens — menus, status bar, and now playing. Colors fade smoothly over 500 ms when the track changes.
-
-|                                                          |                                                          |
-| :------------------------------------------------------: | :------------------------------------------------------: |
-| <img src="screenshots/themify2-1.png" width="280">       | <img src="screenshots/themify2-2.png" width="280">       |
-| <img src="screenshots/themify2-4.png" width="280">       | <img src="screenshots/themify2-3.png" width="280">       |
 
 - **Album art color extraction** — dominant and accent colors pulled from the current track's artwork
 - **Full theme color coverage** — foreground, background, selector bar, selector text, selector gradient, and list separators all adapt
@@ -152,7 +132,6 @@ Rockpod works with both stock HDDs and iFlash SSD mods. HDD behavior is unchange
 
 | Storage Mode                                         |
 | :--------------------------------------------------- |
-| <img src="screenshots/storage-mode.png" width="280"> |
 | Auto-detect, or manually select HDD / SSD            |
 
 - **Auto-detection** via ATA IDENTIFY heuristics (rotation rate, form factor, TRIM support, CFA compliance)
@@ -212,7 +191,6 @@ All standard Rockbox menu items are available.
 
 |                     Main menu                     |                    Database track list                     |
 | :-----------------------------------------------: | :--------------------------------------------------------: |
-| <img src="screenshots/main-menu.png" width="280"> | <img src="screenshots/database-tracklist.png" width="280"> |
 |       Full menu available, shown customized        |         Title only — no disc/track number clutter          |
 
 ---
