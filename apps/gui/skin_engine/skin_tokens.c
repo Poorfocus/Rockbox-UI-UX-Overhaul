@@ -1119,6 +1119,8 @@ const char *get_token_value(struct gui_wps *gwps,
         {
             const char *t = sb_get_title(gwps->display->screen_type);
             const char *root = P2STR(ID2P(LANG_ROCKBOX_TITLE));
+            if (get_current_activity() == ACTIVITY_MAINMENU)
+                return "s";
             if (!t || !root)
                 return NULL;
             return !strcmp(t, root) ? "s" : NULL;

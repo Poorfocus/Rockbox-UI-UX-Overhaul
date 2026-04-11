@@ -54,7 +54,8 @@ JOBS: List[Tuple[str, Path, int, float, int]] = [
 ]
 
 
-def run_one(otf: Path, out: Path, px: int, track: float, space: int, dry: bool) -> bool:
+def run_one(otf: Path, out: Path, px: int, track: float, space: int,
+            start: int, limit: int, dry: bool) -> bool:
     cmd = [
         sys.executable,
         str(OTF_TOOL),
@@ -62,6 +63,10 @@ def run_one(otf: Path, out: Path, px: int, track: float, space: int, dry: bool) 
         str(out),
         "-p",
         str(px),
+        "-s",
+        str(start),
+        "-l",
+        str(limit),
         "--track",
         str(track),
         "--space-extra",
@@ -86,6 +91,12 @@ def run_one(otf: Path, out: Path, px: int, track: float, space: int, dry: bool) 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--start", type=int, default=32,
+        help="First Unicode codepoint (default: 32 = U+0020)")
+    ap.add_argument(
+        "--limit", type=int, default=1327,
+        help="Last Unicode codepoint (default: 1327 = U+052F, covers Latin Extended + Greek + Cyrillic)")
     args = ap.parse_args()
 
     if not OTF_TOOL.is_file():
@@ -99,8 +110,8 @@ def main() -> None:
             print(f"[skip] {name} — no source: {src}")
             skipped += 1
             continue
-        print(f"[build] {name} <= {src.name} px={px} track={track}")
-        if run_one(src, out, px, track, space, args.dry_run):
+        print(f"[build] {name} <= {src.name} px={px} track={track} range=U+{args.start:04X}..U+{args.limit:04X}")
+        if run_one(src, out, px, track, space, args.start, args.limit, args.dry_run):
             ok += 1
 
     print(f"\nDone: built {ok}, skipped {skipped} (install OTFs under Apple Fonts/ to rebuild all).")

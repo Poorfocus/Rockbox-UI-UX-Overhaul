@@ -233,18 +233,27 @@ static void usb_screens_draw(struct usb_screen_vps_t *usb_screen_vps_ar)
         if (i == SCREEN_MAIN)
         {
 #if ROCKPOD_APPLE2026_IPOD
-            /* Apple2026: draw "Connected" label below logo in SF-like style. */
+            /* Apple2026: draw "Connected" label and "Eject to disconnect" hint
+             * below logo in clean Apple-style treatment. */
             if (screen->depth >= 16)
             {
-                int label_y = logo->y + logo->height + 12;
-                int lh = font_get(logo->font)->height;
+                int char_h = font_get(logo->font)->height;
+                int label_y = logo->y + logo->height + 8;
                 struct viewport label_vp = *parent;
                 label_vp.y = label_y;
-                label_vp.height = lh * 2 + 4;
+                label_vp.height = char_h;
                 label_vp.flags |= VP_FLAG_ALIGN_CENTER;
-                screen->set_foreground(LCD_RGBPACK(0x6E, 0x6E, 0x73));
+                screen->set_foreground(LCD_RGBPACK(0x00, 0x00, 0x00));
                 screen->set_viewport(&label_vp);
                 screen->puts_scroll(0, 0, "Connected");
+
+                struct viewport hint_vp = *parent;
+                hint_vp.y = label_y + char_h + 4;
+                hint_vp.height = char_h;
+                hint_vp.flags |= VP_FLAG_ALIGN_CENTER;
+                screen->set_foreground(LCD_RGBPACK(0x8E, 0x8E, 0x93));
+                screen->set_viewport(&hint_vp);
+                screen->puts_scroll(0, 0, "Eject before disconnecting");
                 screen->set_viewport(parent);
             }
 #endif

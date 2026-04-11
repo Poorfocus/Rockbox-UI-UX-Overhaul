@@ -45,6 +45,7 @@
 #include "fileop.h"
 #include "open_plugin.h"
 #include "plugin.h"
+#include "file.h"
 #include "bookmark.h"
 #include "action.h"
 #include "splash.h"
@@ -211,7 +212,10 @@ static int wps_view_cur_playlist(void)
 
 static void playing_time(void)
 {
-    plugin_load(PLUGIN_APPS_DIR"/playing_time.rock", NULL);
+    if (file_exists(PLUGIN_APPS_DIR "/playing_time.rock"))
+        plugin_load(PLUGIN_APPS_DIR "/playing_time.rock", NULL);
+    else
+        plugin_load(PLUGIN_DIR "/playing_time.rock", NULL);
 }
 
 #ifdef HAVE_ALBUMART

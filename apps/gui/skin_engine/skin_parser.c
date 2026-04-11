@@ -2685,6 +2685,12 @@ bool skin_data_load(enum screen_type screen, struct wps_data *wps_data,
     struct skin_element *tree = skin_parse(wps_buffer, skin_element_callback, wps_data);
     wps_data->tree = PTRTOSKINOFFSET(skin_buffer, tree);
     if (!SKINOFFSETTOPTR(skin_buffer, wps_data->tree)) {
+#ifdef SIMULATOR
+        debugf("A26 skin_data_load fail=parse screen=%d isfile=%d buf=%s line=%d col=%d msg=%s",
+               screen, isfile, isfile ? buf : "(generated)",
+               skin_error_line(), skin_error_col(),
+               skin_error_message() ? skin_error_message() : "(null)");
+#endif
 #ifdef DEBUG_SKIN_ENGINE
         if (isfile && debug_wps)
             skin_error_format_message();
@@ -2705,9 +2711,15 @@ bool skin_data_load(enum screen_type screen, struct wps_data *wps_data,
         snprintf(bmpdir, MAX_PATH, "%s", BACKDROP_DIR);
     }
     /* load the bitmaps that were found by the parsing */
-    if (!load_skin_bitmaps(wps_data, bmpdir) ||
-        !skin_load_fonts(wps_data))
+    bool bitmaps_ok = load_skin_bitmaps(wps_data, bmpdir);
+    bool fonts_ok = bitmaps_ok ? skin_load_fonts(wps_data) : false;
+    if (!bitmaps_ok || !fonts_ok)
     {
+#ifdef SIMULATOR
+        debugf("A26 skin_data_load fail=assets screen=%d isfile=%d bitmaps=%d fonts=%d buf=%s bmpdir=%s",
+               screen, isfile, bitmaps_ok, fonts_ok,
+               isfile ? buf : "(generated)", bmpdir);
+#endif
         skin_data_reset(wps_data);
         return false;
     }

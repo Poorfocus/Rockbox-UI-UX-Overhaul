@@ -1,5 +1,9 @@
 *               text=auto
 *.bmp           binary
+*.cfg           text eol=lf
+*.wps           text eol=lf
+*.sbs           text eol=lf
+*.fms           text eol=lf
 *.cat           -text
 *.dll           binary
 *.fnt           binary

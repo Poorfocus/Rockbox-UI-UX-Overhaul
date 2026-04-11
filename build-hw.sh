@@ -152,3 +152,45 @@ prepare_core_generated_headers
 JOBS="$(detect_jobs)"
 make -j"$JOBS"
 make zip
+
+# Inject default config.cfg into the zip so Apple2026 theme loads on first boot.
+# This is idempotent: re-running the build simply overwrites the entry.
+echo "RockPod: injecting config.cfg into rockbox.zip..."
+if [ -f rockbox.zip ]; then
+    TMPDIR_CFG="$(mktemp -d)"
+    mkdir -p "$TMPDIR_CFG/.rockbox"
+    cat > "$TMPDIR_CFG/.rockbox/config.cfg" <<'ROCKPOD_CFG'
+wps: /.rockbox/wps/Apple2026.wps
+fms: -
+sbs: /.rockbox/wps/Apple2026.sbs
+selector type: bar (color)
+foreground color: 000000
+background color: ffffff
+line selector start color: E5E5EA
+line selector end color: E5E5EA
+line selector text color: 000000
+list separator height: 1
+list separator color: C6C6C8
+font: /.rockbox/fonts/20-SFProText-Regular.fnt
+statusbar: top
+iconset: /.rockbox/icons/Apple2026Icons.bmp
+viewers iconset: -
+show icons: on
+ui viewport: -
+scrollbar: right
+scrollbar width: 2
+disable main menu scrolling: on
+qs top: brightness
+qs left: shuffle
+qs right: repeat
+qs bottom: sleeptimer duration
+ROCKPOD_CFG
+    OLDPWD="$(pwd)"
+    cd "$TMPDIR_CFG" || exit 1
+    zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/config.cfg"
+    cd "$OLDPWD" || exit 1
+    rm -rf "$TMPDIR_CFG"
+    echo "RockPod: config.cfg injected."
+else
+    echo "RockPod: WARNING — config.cfg injection skipped (rockbox.zip missing)."
+fi

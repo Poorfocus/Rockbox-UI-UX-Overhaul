@@ -40,6 +40,7 @@
 #include "statusbar-skinned.h"
 #include "wps_internals.h"
 #include "skin_albumart_color.h"
+#include "debug.h"
 
 #define FAILSAFENAME "rockbox_failsafe"
 
@@ -223,6 +224,7 @@ void skin_load(enum skinnable_screens skin, enum screen_type screen,
                const char *buf, bool isfile)
 {
     bool loaded = false;
+    bool fallback_loaded = false;
 
     skin_helpers[skin]->process(screen, &skins[skin][screen].data, true);
 
@@ -232,12 +234,18 @@ void skin_load(enum skinnable_screens skin, enum screen_type screen,
 
     if (!loaded && skin_helpers[skin]->default_skin)
     {
-        loaded = skin_data_load(screen, &skins[skin][screen].data,
-                                skin_helpers[skin]->default_skin(screen), false,
-                                &skins[skin][screen].stats);
-        skins[skin][screen].failsafe_loaded = loaded;
+        fallback_loaded = skin_data_load(screen, &skins[skin][screen].data,
+                                         skin_helpers[skin]->default_skin(screen), false,
+                                         &skins[skin][screen].stats);
+        loaded = fallback_loaded;
+        skins[skin][screen].failsafe_loaded = fallback_loaded;
     }
 
+#ifdef SIMULATOR
+    debugf("A26 skin_load skin=%d screen=%d isfile=%d requested=%s loaded=%d fallback=%d failsafe=%d",
+           skin, screen, isfile, (buf && *buf) ? buf : "(default)",
+           loaded, fallback_loaded, skins[skin][screen].failsafe_loaded);
+#endif
     skins[skin][screen].needs_full_update = true;
     skin_helpers[skin]->process(screen, &skins[skin][screen].data, false);
 #ifdef HAVE_BACKDROP_IMAGE

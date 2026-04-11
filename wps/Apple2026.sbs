@@ -28,6 +28,10 @@
 %Fl(5,18-SFProText-Regular.fnt)
 # Slot 6: dense list rows — 16pt SF Pro Text Regular (RB12 h=20px; loaded by list.c)
 %Fl(6,16-SFProText-Regular.fnt)
+# Slot 7: lockscreen clock — 35pt SF Pro Display Bold (RB12 h=43px)
+%Fl(7,35-SFProDisplay-Bold.fnt)
+# Slot 8: lockscreen/QS secondary labels — 14pt SF Pro Text Regular (RB12 h=18px)
+%Fl(8,14-SFProText-Regular.fnt)
 
 # ── Asset preloads ────────────────────────────────────────────────────────────
 # playerStatus: 16x18 per tile, 4 frames — Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
@@ -37,6 +41,10 @@
 %xl(L,busyIndicator.bmp,0,0,16)
 %xl(B,batteryStatus.bmp,0,4,10)
 %xl(M,usbBackdrop.bmp,0,0)
+# Lockscreen assets
+%xl(N,LockNotification.bmp,0,0)
+%xl(O,LockNotifPlay.bmp,0,0,2)
+%xl(Q,LockBatWarn.bmp,0,0)
 
 # ── Shell routing ─────────────────────────────────────────────────────────────
 #
@@ -46,7 +54,7 @@
 #   branch 2 = STATUS_PAUSE → mainlarge (content above 44px mini-player, paused)
 #   %Lo true = at root → _lt variant (starts at y=38, below large title)
 #
-%?mp<%?Lo<%VI(main_full_lt)|%VI(main_full)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>>
+%?if(%cs, =, 10)<%VI(qs_content)|%?mp<%?Lo<%VI(main_full_lt)|%VI(main_full)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>>>
 #
 # Bottom bar + volume:
 #   Stopped (branch 0)  → no bottom bar rendered
@@ -54,7 +62,7 @@
 #   Paused  (branch 2)  → 44px mini-player: art + title + paused indicator
 #   FF/Rew  (branch 3+) → 44px mini-player (same as playing)
 #
-%?mp<|%Vd(bottombarsmall)%?mv(1.2)<%?if(%pv, >, 0)<%Vd(volumebar_small_clip)|%Vd(volumebar_small_noclip)>|%?C<%Vd(mp_albumart)%Vd(mp_track)|%Vd(mp_track_noart)>%Vd(mp_playpause)>|%Vd(bottombarsmall)%?mv(1.2)<%?if(%pv, >, 0)<%Vd(volumebar_small_clip)|%Vd(volumebar_small_noclip)>|%?C<%Vd(mp_albumart)%Vd(mp_track)|%Vd(mp_track_noart)>%Vd(mp_playpause)>>
+%?if(%cs, =, 10)<|%?mp<|%Vd(bottombarsmall)%?mv(1.2)<%?if(%pv, >, 0)<%Vd(volumebar_small_clip)|%Vd(volumebar_small_noclip)>|%?C<%Vd(mp_albumart)%Vd(mp_track)|%Vd(mp_track_noart)>%Vd(mp_playpause)>|%Vd(bottombarsmall)%?mv(1.2)<%?if(%pv, >, 0)<%Vd(volumebar_small_clip)|%Vd(volumebar_small_noclip)>|%?C<%Vd(mp_albumart)%Vd(mp_track)|%Vd(mp_track_noart)>%Vd(mp_playpause)>>>
 #
 # Header indicators (battery/lock/busy — playback state is bottom bar only, calmer shell)
 %?Lo<%Vd(battery_icon_root)|%Vd(battery_icon)>
@@ -71,6 +79,9 @@
 #
 # USB backdrop
 %?if(%cs, =, 21)<%xd(M)>
+
+# Homescreen lockscreen — covers root menu when hold is engaged
+%?if(%cs, =, 1)<%?mh<%Vd(home_lock_wallpaper)%Vd(home_lock_clock)%Vd(home_lock_date)%Vd(home_lock_battery)%?bs<%Vd(home_lock_sleep)>%Vd(home_lock_notif)%Vd(home_lock_notif_art)%Vd(home_lock_title)%Vd(home_lock_artist)%Vd(home_lock_play)%?pS(0.2)<%Vd(home_lock_refresh)>|>|>
 
 # ── Header background (30px, FFFFFF) ─────────────────────────────────────────
 %V(0,0,-,30,-)
@@ -102,21 +113,35 @@
 # ── Content viewports (full width: selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
 # mainlarge: used when playing/paused (content area above 44px mini-player)
-%Vi(mainlarge,0,30,-,-44,-)
+%Vi(-,0,38,-,-44,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(mainlarge_lt,0,38,-,-44,-)
+%Vi(mainlarge,0,30,-,-44,5)
+%Vf(000000)
+%Vb(FFFFFF)
+
+%Vi(mainlarge_lt,0,38,-,-44,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
 # main_full: used when stopped (no bottom bar — full content area)
-%Vi(main_full,0,30,-,-,-)
+%Vi(main_full,0,30,-,-,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(main_full_lt,0,38,-,-,-)
+%Vi(main_full_lt,0,38,-,-,5)
 %Vf(000000)
+%Vb(FFFFFF)
+
+# 1x1 hidden content VP — used for lockscreen (no list content shown)
+%Vi(lock_empty,0,0,1,1,5)
+%Vf(FFFFFF)
+%Vb(FFFFFF)
+
+# Quick Screen content viewport — real themed content area below the header
+%Vi(qs_content,0,30,-,-,6)
+%Vf(FFFFFF)
 %Vb(FFFFFF)
 
 # ── Lock icon ─────────────────────────────────────────────────────────────────
@@ -221,3 +246,55 @@
 %Vf(FF2D55)
 %Vb(FFFFFF)
 %pv(0,8,-,4,noborder)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HOMESCREEN LOCKSCREEN — white background, black text (cs=1 + hold)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+%Vl(home_lock_wallpaper,0,0,-,-,-)
+%Vf(FFFFFF)
+%Vb(FFFFFF)
+%dr(0,0,-,-,FFFFFF)
+
+%Vl(home_lock_clock,0,42,-,43,7)
+%Vf(000000)
+%Vb(FFFFFF)
+%ac%?cf<%cH:%cM|%cl:%cM>
+
+%Vl(home_lock_date,0,90,-,18,8)
+%Vf(8E8E93)
+%Vb(FFFFFF)
+%s%ac%ca, %cb %ce
+
+%Vl(home_lock_battery,-32,8,-,20,3)
+%Vf(000000)
+%Vb(FFFFFF)
+%?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
+
+%Vl(home_lock_sleep,-52,10,52,18,8)
+%Vf(8E8E93)
+%Vb(FFFFFF)
+%bs
+
+%Vl(home_lock_notif,16,155,288,70,-)
+%xd(N)
+
+%Vl(home_lock_notif_art,24,168,44,44,-)
+# Intentionally no secondary %Cl/%Cd here.
+# Rockbox keeps one album-art definition per skin, so a second 44x44 load
+# here would override the 32x32 mini-player geometry and crop the bottom tab.
+
+%Vl(home_lock_title,76,168,190,20,3)
+%Vf(000000)
+%Vb(F2F2F7)
+%s%al%?it<%it|%fn>
+
+%Vl(home_lock_artist,76,190,190,18,8)
+%Vf(8E8E93)
+%Vb(F2F2F7)
+%s%al%?ia<%ia|>
+
+%Vl(home_lock_play,280,178,12,14,-)
+%?mp<|%xd(Ob)|%xd(Oa)|%xd(Ob)|%xd(Ob)>
+
+%Vl(home_lock_refresh,0,0,1,1,-)

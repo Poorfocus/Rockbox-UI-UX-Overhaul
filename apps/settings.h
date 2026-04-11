@@ -350,6 +350,17 @@ enum playback_source {
     PLAYBACK_SOURCE_PLAYLIST_VIEWER,
 };
 
+/* Apple2026: explicit WPS return context captured at playback start. */
+enum playback_context {
+    PLAYBACK_CONTEXT_NONE = 0,
+    PLAYBACK_CONTEXT_ROOT,
+    PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST,
+    PLAYBACK_CONTEXT_FILESYSTEM,
+    PLAYBACK_CONTEXT_DATABASE,
+    PLAYBACK_CONTEXT_PLAYLIST,
+    PLAYBACK_CONTEXT_QUEUE,
+};
+
 struct system_status
 {
     int volume;     /* audio output volume in decibels range depends on the dac */
@@ -378,6 +389,11 @@ struct system_status
     bool resume_modified; /* playlist is modified (=> warn before erase) */
 
     signed char playback_source; /* enum playback_source; RAM session state */
+    signed char playback_context; /* enum playback_context; RAM session state */
+    int playback_context_screen;
+    int playback_context_dirlevel;
+    int playback_context_selection;
+    char playback_context_path[MAX_PATH];
 };
 
 struct user_settings
@@ -965,5 +981,11 @@ extern struct user_settings global_settings;
 extern struct system_status global_status;
 
 void playback_source_set(enum playback_source src);
+void playback_context_clear(void);
+void playback_context_set_root(void);
+void playback_context_set_pictureflow_tracklist(void);
+void playback_context_set_filesystem(int browser_screen, const char *path);
+void playback_context_set_database(int dirlevel, int selection);
+void playback_context_set_playlist(bool is_queue);
 
 #endif /* __SETTINGS_H__ */

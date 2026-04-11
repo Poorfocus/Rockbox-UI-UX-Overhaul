@@ -273,3 +273,45 @@ fi
 # fonts; any font used by PictureFlow, WPS fallback, or future skins must also be present.
 sync_all_fonts "$(pwd)"
 check_asset_freshness "$(pwd)"
+
+# Write config.cfg so Apple2026 theme loads automatically on simulator start.
+SIMDISK="$(pwd)/simdisk/.rockbox"
+if [ -d "$SIMDISK" ]; then
+    cat > "$SIMDISK/config.cfg" <<'ROCKPOD_CFG'
+wps: /.rockbox/wps/Apple2026.wps
+fms: -
+sbs: /.rockbox/wps/Apple2026.sbs
+selector type: bar (color)
+foreground color: 000000
+background color: ffffff
+line selector start color: E5E5EA
+line selector end color: E5E5EA
+line selector text color: 000000
+list separator height: 1
+list separator color: C6C6C8
+font: /.rockbox/fonts/20-SFProText-Regular.fnt
+statusbar: top
+iconset: /.rockbox/icons/Apple2026Icons.bmp
+viewers iconset: -
+show icons: on
+ui viewport: -
+scrollbar: right
+scrollbar width: 2
+disable main menu scrolling: on
+qs top: brightness
+qs left: shuffle
+qs right: repeat
+qs bottom: sleeptimer duration
+ROCKPOD_CFG
+    echo "RockPod: config.cfg written to simdisk."
+fi
+
+# Normalize line endings in all text theme files to LF.
+# Rockbox skin parser is LF-only; CRLF (Windows default) causes silent parse failure.
+if command -v sed >/dev/null 2>&1; then
+    find "$SIMDISK" -name "*.wps" -o -name "*.sbs" -o -name "*.fms" -o -name "*.cfg" \
+        -o -name "*.theme" | while read -r tf; do
+        sed -i 's/\r//' "$tf"
+    done
+    echo "RockPod: theme files normalized to LF."
+fi
