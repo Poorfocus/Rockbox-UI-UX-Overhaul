@@ -258,6 +258,10 @@ static void pf_update_dynamic_colors(void)
 /* Interpolate between pf_bg_color (brightness=0) and pf_fg_color (brightness=255) */
 static inline pix_t pf_color_mix(int brightness)
 {
+    /* Clamp minimum brightness so text never fades to background/invisible.
+     * This ensures album/artist text stays readable during scroll transitions. */
+    if (brightness < 100)
+        brightness = 100;
     int bg_r = RGB_UNPACK_RED(pf_bg_color);
     int bg_g = RGB_UNPACK_GREEN(pf_bg_color);
     int bg_b = RGB_UNPACK_BLUE(pf_bg_color);
@@ -4187,6 +4191,8 @@ static void track_list_yh(int char_height)
 {
     bool needs_space = pf_cfg.show_fps || aa_cache.inspected < pf_idx.album_ct;
     int abh = pf_album_block_px(char_height);
+    int gap = char_height / 3;
+    if (gap < 4) gap = 4;
 
     switch (pf_cfg.show_album_name)
     {
@@ -4196,7 +4202,7 @@ static void track_list_yh(int char_height)
             break;
         case ALBUM_NAME_BOTTOM:
             pf_tracks.list_y = (needs_space ? char_height : 0);
-            pf_tracks.list_h = pf_height - pf_tracks.list_y - abh;
+            pf_tracks.list_h = pf_height - pf_tracks.list_y - abh - gap;
             break;
         case ALBUM_AND_ARTIST_TOP:
             pf_tracks.list_y = abh;
@@ -4205,7 +4211,7 @@ static void track_list_yh(int char_height)
             break;
         case ALBUM_AND_ARTIST_BOTTOM:
             pf_tracks.list_y = (needs_space ? char_height : 0);
-            pf_tracks.list_h = pf_height - pf_tracks.list_y - abh;
+            pf_tracks.list_h = pf_height - pf_tracks.list_y - abh - gap;
             break;
         case ALBUM_NAME_TOP:
         default:
@@ -4305,6 +4311,28 @@ static bool show_track_list(void)
         }
         reset_track_list();
     }
+
+    if (rb->global_status->playback_context ==
+        PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST &&
+        rb->audio_status())
+    {
+        const struct mp3entry *playing = rb->audio_current_track();
+        if (playing)
+        {
+            int i;
+            for (i = 0; i < pf_tracks.count; i++)
+            {
+                if (!rb->strcmp(get_track_filename(i), playing->path))
+                {
+                    pf_tracks.sel = i;
+                    if (pf_tracks.list_visible > 0 && i >= pf_tracks.list_visible)
+                        pf_tracks.list_start = i - pf_tracks.list_visible + 1;
+                    break;
+                }
+            }
+        }
+    }
+
     int titletxt_w, titletxt_x, color, titletxt_h;
     titletxt_h = pf_tracks.list_row_h > 0 ? pf_tracks.list_row_h
                  : rb->screens[SCREEN_MAIN]->getcharheight();
@@ -4354,28 +4382,35 @@ static bool show_track_list(void)
     return true;
 }
 
-static void select_next_track(void)
+static void select_next_track(bool allow_wrap)
 {
+    if (pf_tracks.count <= 0)
+        return;
+
     if ( pf_tracks.sel < pf_tracks.count - 1 ) {
         pf_tracks.sel++;
         if (pf_tracks.sel==(pf_tracks.list_visible+pf_tracks.list_start))
             pf_tracks.list_start++;
-    } else if (rb->global_settings->list_wraparound) {
-        /* Rollover */
+    } else if (allow_wrap && rb->global_settings->list_wraparound) {
         pf_tracks.sel = 0;
         pf_tracks.list_start = 0;
     }
 }
 
-static void select_prev_track(void)
+static void select_prev_track(bool allow_wrap)
 {
+    if (pf_tracks.count <= 0)
+        return;
+
     if (pf_tracks.sel > 0 ) {
         if (pf_tracks.sel==pf_tracks.list_start) pf_tracks.list_start--;
         pf_tracks.sel--;
-    } else if (rb->global_settings->list_wraparound) {
-        /* Rolllover */
+    } else if (allow_wrap && rb->global_settings->list_wraparound) {
         pf_tracks.sel = pf_tracks.count - 1;
-        pf_tracks.list_start = pf_tracks.count - pf_tracks.list_visible;
+        if (pf_tracks.count > pf_tracks.list_visible)
+            pf_tracks.list_start = pf_tracks.count - pf_tracks.list_visible;
+        else
+            pf_tracks.list_start = 0;
     }
 }
 
@@ -4674,6 +4709,11 @@ static bool start_playback(bool return_to_WPS)
             start_index = rb->playlist_shuffle(*rb->current_tick, pf_tracks.sel);
     }
     rb->playlist_start(start_index, 0, 0);
+    rb->global_status->playback_context = PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST;
+    rb->global_status->playback_context_screen = 0;
+    rb->global_status->playback_context_dirlevel = 0;
+    rb->global_status->playback_context_selection = 0;
+    rb->global_status->playback_context_path[0] = '\0';
     rb->global_status->playback_source = PLAYBACK_SOURCE_PICTUREFLOW;
     old_shuffle = shuffle;
 #ifdef USEGSLIB
@@ -5288,7 +5328,7 @@ static int pictureflow_main(void)
                 if (show_tracks_while_browsing)
                     select_next_album();
                 else
-                    select_next_track();
+                    select_next_track(button != PF_NEXT_REPEAT);
             }
             else if (pf_state == pf_cover_in)
                 skip_animation_to_show_tracks();
@@ -5306,7 +5346,7 @@ static int pictureflow_main(void)
                 if (show_tracks_while_browsing)
                     select_prev_album();
                 else
-                    select_prev_track();
+                    select_prev_track(button != PF_PREV_REPEAT);
             }
             else if (pf_state == pf_cover_in)
                 skip_animation_to_show_tracks();

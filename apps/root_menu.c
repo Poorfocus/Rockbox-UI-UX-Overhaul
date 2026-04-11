@@ -144,9 +144,17 @@ static int browser(void* param)
     {
         case GO_TO_FILEBROWSER:
             filter = global_settings.dirfilter;
-            if (global_settings.browse_current &&
-                    last_screen == GO_TO_WPS &&
-                    current_track_path[0])
+            if (last_screen == GO_TO_WPS &&
+                global_status.playback_context == PLAYBACK_CONTEXT_FILESYSTEM &&
+                global_status.playback_context_screen == GO_TO_FILEBROWSER &&
+                global_status.playback_context_path[0])
+            {
+                strmemccpy(folder, global_status.playback_context_path,
+                           sizeof(folder));
+            }
+            else if (global_settings.browse_current &&
+                     last_screen == GO_TO_WPS &&
+                     current_track_path[0])
             {
                 strcpy(folder, current_track_path);
             }
@@ -195,7 +203,15 @@ static int browser(void* param)
              * Apple2026 back-navigation guard in tree.c which expects currdir
              * to always be inside /Music/.  Always resume at last_music_folder
              * (validated below) or the library root. */
-            if (!strcmp(last_music_folder, "/") ||
+            if (last_screen == GO_TO_WPS &&
+                global_status.playback_context == PLAYBACK_CONTEXT_FILESYSTEM &&
+                global_status.playback_context_screen == GO_TO_MUSICLIB &&
+                global_status.playback_context_path[0])
+            {
+                strmemccpy(folder, global_status.playback_context_path,
+                           sizeof(folder));
+            }
+            else if (!strcmp(last_music_folder, "/") ||
                 strncmp(last_music_folder, "/Music", 6) != 0 ||
                 (last_music_folder[6] != '/' && last_music_folder[6] != '\0'))
             {
@@ -332,8 +348,17 @@ static int browser(void* param)
                 return GO_TO_PREVIOUS;
             filter = SHOW_ID3DB;
             last_ft_dirlevel = tc->dirlevel;
-            tc->dirlevel = last_db_dirlevel;
-            tc->selected_item = last_db_selection;
+            if (last_screen == GO_TO_WPS &&
+                global_status.playback_context == PLAYBACK_CONTEXT_DATABASE)
+            {
+                tc->dirlevel = global_status.playback_context_dirlevel;
+                tc->selected_item = global_status.playback_context_selection;
+            }
+            else
+            {
+                tc->dirlevel = last_db_dirlevel;
+                tc->selected_item = last_db_selection;
+            }
             push_current_activity(ACTIVITY_DATABASEBROWSER);
         break;
 #endif /*HAVE_TAGCACHE*/
@@ -660,7 +685,18 @@ static struct menu_callback_with_desc root_menu_desc = {
 
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 /* Apple2026: no Plugins / Shortcuts at root — keep shell music-first.
- * Cover Flow is second since it is a core playback surface, not a utility. */
+ * Cover Flow is second since it is a core playback surface, not a utility.
+ * System (info/credits/debug) folded into Settings; accessible via
+ * Settings > General Settings > System.
+ * Extras menu gathers Plugins, Shortcuts, Recording for non-core access. */
+#ifdef HAVE_RECORDING
+MAKE_MENU(extras_submenu, "Extras", 0, Icon_Plugin,
+          &rocks_browser, &shortcut_menu, &rec);
+#else
+MAKE_MENU(extras_submenu, "Extras", 0, Icon_Plugin,
+          &rocks_browser, &shortcut_menu);
+#endif
+
 static struct menu_table menu_table[] = {
     { "music", &music_library },
 #ifdef HAVE_TAGCACHE
@@ -673,7 +709,7 @@ static struct menu_table menu_table[] = {
     { "database", &db_browser },
 #endif
     { "settings", &menu_ },
-    { "system_menu", &system_menu_ },
+    { "extras", (const struct menu_item_ex *)&extras_submenu },
 };
 #else
 static struct menu_table menu_table[] = {
@@ -1134,13 +1170,19 @@ void root_menu(void)
                  * browse-to-play content chain.  Only the WPS path needs the
                  * flag; FM is irrelevant for this check. */
                 if (next_screen == GO_TO_WPS)
+                {
                     wps_entered_from_root = (last_screen == GO_TO_ROOT);
+                    if (last_screen == GO_TO_ROOT)
+                        playback_context_set_root();
+                }
                 previous_music = next_screen;
                 goto load_next_screen;
                 break;
 #else
             case GO_TO_WPS:
                 wps_entered_from_root = (last_screen == GO_TO_ROOT);
+                if (last_screen == GO_TO_ROOT)
+                    playback_context_set_root();
                 goto load_next_screen;
                 break;
 #endif
@@ -1252,4 +1294,69 @@ load_next_screen: /* load_screen is inlined */
 void playback_source_set(enum playback_source src)
 {
     global_status.playback_source = (signed char)src;
+}
+
+void playback_context_clear(void)
+{
+    global_status.playback_context = PLAYBACK_CONTEXT_NONE;
+    global_status.playback_context_screen = GO_TO_ROOT;
+    global_status.playback_context_dirlevel = 0;
+    global_status.playback_context_selection = 0;
+    global_status.playback_context_path[0] = '\0';
+}
+
+static void playback_context_set(enum playback_context ctx, int screen,
+                                 int dirlevel, int selection,
+                                 const char *path)
+{
+    global_status.playback_context = (signed char)ctx;
+    global_status.playback_context_screen = screen;
+    global_status.playback_context_dirlevel = dirlevel;
+    global_status.playback_context_selection = selection;
+
+    if (path)
+        strmemccpy(global_status.playback_context_path, path,
+                   sizeof(global_status.playback_context_path));
+    else
+        global_status.playback_context_path[0] = '\0';
+}
+
+void playback_context_set_root(void)
+{
+    playback_context_set(PLAYBACK_CONTEXT_ROOT, GO_TO_ROOT, 0, 0, NULL);
+}
+
+void playback_context_set_pictureflow_tracklist(void)
+{
+#ifdef HAVE_TAGCACHE
+    playback_context_set(PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST,
+                         GO_TO_PICTUREFLOW, 0, 0, NULL);
+#else
+    playback_context_set(PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST, 0, 0, 0, NULL);
+#endif
+}
+
+void playback_context_set_filesystem(int browser_screen, const char *path)
+{
+    playback_context_set(PLAYBACK_CONTEXT_FILESYSTEM, browser_screen, 0, 0,
+                         path);
+}
+
+void playback_context_set_database(int dirlevel, int selection)
+{
+#ifdef HAVE_TAGCACHE
+    playback_context_set(PLAYBACK_CONTEXT_DATABASE, GO_TO_DBBROWSER, dirlevel,
+                         selection, NULL);
+#else
+    playback_context_set(PLAYBACK_CONTEXT_DATABASE, 0, dirlevel, selection, NULL);
+#endif
+}
+
+void playback_context_set_playlist(bool is_queue)
+{
+    playback_context_set(is_queue ? PLAYBACK_CONTEXT_QUEUE
+                                  : PLAYBACK_CONTEXT_PLAYLIST,
+                         is_queue ? GO_TO_PLAYLIST_VIEWER
+                                  : GO_TO_PLAYLISTS_SCREEN,
+                         0, 0, NULL);
 }

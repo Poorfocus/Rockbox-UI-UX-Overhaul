@@ -1045,11 +1045,13 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                 {
                     /* play new track */
                     playlist_start(current_track->index, 0, 0);
+                    playback_context_set_playlist(true);
                     playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
                     update_playlist(false);
                 }
                 else if (warn_on_pl_erase())
                 {
+                    playback_context_set_playlist(false);
                     /* Turn it into the current playlist */
                     ret_val = playlist_set_current(viewer.playlist);
 
@@ -1311,6 +1313,7 @@ bool search_playlist(void)
             {
                 int sel = gui_synclist_get_sel_pos(&playlist_lists);
                 playlist_start(found_indicies[sel], 0, 0);
+                playback_context_set_playlist(viewer.playlist == NULL);
                 playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
                 exit = 1;
             }

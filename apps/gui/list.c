@@ -153,28 +153,37 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
     list->line_height[screen] = line_height;
 #endif
 #if ROCKPOD_APPLE2026_IPOD
-    if (rockpod_list_font_tier == ROCKPOD_LIST_FONT_DENSE)
     {
-        /* Dense tier: switch to 16pt Regular for track/song lists.
-         * Row floor 28px — allows more visible track rows while still
-         * providing adequate clearance for 20px font + separator. */
-        apple2026_ensure_dense_font();
-        if (apple2026_dense_font_id >= 0)
+        int min_row;
+        if (rockpod_list_font_tier == ROCKPOD_LIST_FONT_DENSE)
         {
-            struct font *ft = font_get(apple2026_dense_font_id);
-            if (ft)
-                line_height = ft->height;
+            apple2026_ensure_dense_font();
+            if (apple2026_dense_font_id >= 0)
+            {
+                struct font *ft = font_get(apple2026_dense_font_id);
+                if (ft)
+                    line_height = ft->height;
+            }
+            list->line_height[screen] = line_height;
+            min_row = 28;
         }
-        list->line_height[screen] = line_height;
-        if (list->line_height[screen] < 28)
-            list->line_height[screen] = 28;
-    }
-    else
-    {
-        /* Normal tier: 18pt Regular, 30px floor — reduced from 32px to
-         * allow one additional visible row when mini-player is active. */
-        if (list->line_height[screen] < 30)
-            list->line_height[screen] = 30;
+        else
+        {
+            min_row = 30;
+        }
+        if (list->line_height[screen] < min_row)
+            list->line_height[screen] = min_row;
+
+        /* Dynamic fill: distribute leftover pixels so rows fill the
+         * viewport completely, eliminating the dead gap at the bottom.
+         * Same visible item count, more generous per-row padding. */
+        int avail = vp->height;
+        if (avail > 0 && list->line_height[screen] > 0)
+        {
+            int n = avail / list->line_height[screen];
+            if (n > 0)
+                list->line_height[screen] = avail / n;
+        }
     }
 #endif
 }

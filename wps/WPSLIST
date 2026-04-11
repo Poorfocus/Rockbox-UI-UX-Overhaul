@@ -52,12 +52,12 @@ RFMS: no
 wps.320x240x(16|24|32): Apple2026.wps
 sbs.320x240x(16|24|32): Apple2026.sbs
 
-# Apple2026: 20px SF Pro Text Regular (FONT_UI); list row floor 30px; list UI viewport
+# Apple2026: 18px SF Pro Text Regular (FONT_UI); list row floor 30px; list UI viewport
 # full width (selector/dividers edge-to-edge); 16px content inset in bitmap/list.c.
 # SBS: 28px SF Pro Display Bold (Library large title, slot 2); 32px title viewport
 # band at y=4; list content starts at y=38 for root (_lt variants).
 # Icon strip: 30x30 tiles (34 icons incl. Artist + Album), scale 0.88 within tile.
-Font.320x240x(16|24|32): 20-SFProText-Regular.fnt
+Font.320x240x(16|24|32): 18-SFProText-Regular.fnt
 
 foreground color: 000000
 background color: ffffff
@@ -75,6 +75,11 @@ scrollbar: right
 scrollbar width: 2
 list separator height: 1
 list separator color: C6C6C8
+disable main menu scrolling: on
+qs top: brightness
+qs left: shuffle
+qs right: repeat
+qs bottom: sleeptimer duration
 </main>
 
 <remote>

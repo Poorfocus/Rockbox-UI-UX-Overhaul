@@ -76,6 +76,11 @@ my $listviewport;
 my $remotelistviewport;
 my $scrollbar;
 my $scrollbarwidth;
+my $disablemainmenuscrolling;
+my $qstop;
+my $qsleft;
+my $qsright;
+my $qsbottom;
 
 # LCD sizes
 my ($main_height, $main_width, $main_depth);
@@ -344,6 +349,12 @@ MOO
     push @out, "ui viewport: $listviewport\n"   if (defined($listviewport));
     push @out, "scrollbar: $scrollbar\n"        if (defined($scrollbar));
     push @out, "scrollbar width: $scrollbarwidth\n" if (defined($scrollbarwidth));
+    push @out, "disable main menu scrolling: $disablemainmenuscrolling\n"
+        if (defined($disablemainmenuscrolling));
+    push @out, "qs top: $qstop\n"               if (defined($qstop));
+    push @out, "qs left: $qsleft\n"             if (defined($qsleft));
+    push @out, "qs right: $qsright\n"           if (defined($qsright));
+    push @out, "qs bottom: $qsbottom\n"         if (defined($qsbottom));
 
     if ($has_remote) {
         push @out, "remote font: $remotefont\n"                  if (defined($remotefont));
@@ -495,6 +506,11 @@ while(<WPS>) {
         undef $remotelistviewport;
         undef $scrollbar;
         undef $scrollbarwidth;
+        undef $disablemainmenuscrolling;
+        undef $qstop;
+        undef $qsleft;
+        undef $qsright;
+        undef $qsbottom;
     }
     elsif($l =~ /^Name: *(.*)/i) {
         $theme = $1;
@@ -589,6 +605,21 @@ while(<WPS>) {
             }
             elsif($l =~ /^scrollbar width: *(.*)/i) {
                 $scrollbarwidth = $1;
+            }
+            elsif($l =~ /^disable main menu scrolling: *(.*)/i) {
+                $disablemainmenuscrolling = $1;
+            }
+            elsif($l =~ /^qs top: *(.*)/i) {
+                $qstop = $1;
+            }
+            elsif($l =~ /^qs left: *(.*)/i) {
+                $qsleft = $1;
+            }
+            elsif($l =~ /^qs right: *(.*)/i) {
+                $qsright = $1;
+            }
+            elsif($l =~ /^qs bottom: *(.*)/i) {
+                $qsbottom = $1;
             }
         }
     }

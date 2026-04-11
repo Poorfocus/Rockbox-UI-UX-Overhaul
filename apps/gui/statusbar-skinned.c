@@ -55,6 +55,19 @@ static char sbs_persistent_title[NB_SCREENS][80];
 static enum themable_icons sbs_icon[NB_SCREENS];
 static bool sbs_loaded[NB_SCREENS] = { false };
 
+#ifdef SIMULATOR
+static const char *apple2026_dbg_infovp_label(enum screen_type screen,
+                                              OFFSETTYPE(char*) label)
+{
+    struct wps_data *data = skin_get_gwps(CUSTOM_STATUSBAR, screen)->data;
+    if (label == VP_DEFAULT_LABEL)
+        return VP_DEFAULT_LABEL_STRING;
+    if (!label || !data)
+        return "(null)";
+    return SKINOFFSETTOPTR(get_skin_buffer(data), label);
+}
+#endif
+
 void sb_set_info_vp(enum screen_type screen, OFFSETTYPE(char*) label);
 
 bool sb_set_title_text(const char* title, enum themable_icons icon, enum screen_type screen)
@@ -136,6 +149,11 @@ static OFFSETTYPE(char*) oldinfovp_label[NB_SCREENS];
 void sb_set_info_vp(enum screen_type screen, OFFSETTYPE(char*) label)
 {
     infovp_label[screen] = label;
+#ifdef SIMULATOR
+    debugf("A26 sb_set_info_vp screen=%d sbs=%s label=%s",
+           screen, global_settings.sbs_file,
+           apple2026_dbg_infovp_label(screen, label));
+#endif
 }
 
 struct viewport *sb_skin_get_info_vp(enum screen_type screen)
@@ -161,9 +179,22 @@ struct viewport *sb_skin_get_info_vp(enum screen_type screen)
         return NULL;
     vp = skin_find_item(label, SKIN_FIND_UIVP, data);
     if (!vp)
+#ifdef SIMULATOR
+    {
+        debugf("A26 sb_skin_get_info_vp screen=%d sbs=%s label=%s found=0",
+               screen, global_settings.sbs_file, label);
         return NULL;
+    }
+#else
+        return NULL;
+#endif
     if (vp->parsed_fontid == 1)
         vp->vp.font = screens[screen].getuifont();
+#ifdef SIMULATOR
+    debugf("A26 sb_skin_get_info_vp screen=%d sbs=%s label=%s found=1 vp=%d,%d %dx%d font=%d hidden=0x%x infovp=%d",
+           screen, global_settings.sbs_file, label, vp->vp.x, vp->vp.y, vp->vp.width, vp->vp.height,
+           vp->vp.font, vp->hidden_flags, vp->is_infovp);
+#endif
     return &vp->vp;
 }
 

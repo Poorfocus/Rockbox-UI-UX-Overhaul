@@ -687,16 +687,39 @@ static inline int action_wpsab_single(long button)
 static bool wps_handle_browse_parent(long *out_screen, bool *theme_enabled,
                                    bool *restore)
 {
-    /* Apple2026 bounded-stack rule: if WPS was entered from the root menu
-     * ("Now Playing" / resume), back returns to Main Menu -- not to the stale
-     * playback_source chain the user already backed out of.  This prevents
-     * the Main Menu -> Now Playing -> back -> Cover Flow -> back -> Main Menu
-     * infinite loop. */
-    if (wps_entered_from_root)
+    switch ((enum playback_context)global_status.playback_context)
     {
+    case PLAYBACK_CONTEXT_ROOT:
         gwps_leave_wps(true);
         *out_screen = GO_TO_ROOT;
         return false;
+#ifdef HAVE_TAGCACHE
+    case PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PICTUREFLOW;
+        return false;
+#endif
+    case PLAYBACK_CONTEXT_FILESYSTEM:
+        gwps_leave_wps(true);
+        *out_screen = global_status.playback_context_screen;
+        return false;
+#ifdef HAVE_TAGCACHE
+    case PLAYBACK_CONTEXT_DATABASE:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_DBBROWSER;
+        return false;
+#endif
+    case PLAYBACK_CONTEXT_PLAYLIST:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PLAYLISTS_SCREEN;
+        return false;
+    case PLAYBACK_CONTEXT_QUEUE:
+        gwps_leave_wps(true);
+        *out_screen = GO_TO_PLAYLIST_VIEWER;
+        return false;
+    case PLAYBACK_CONTEXT_NONE:
+    default:
+        break;
     }
 
     switch ((enum playback_source)global_status.playback_source)

@@ -34,6 +34,7 @@
 %Fl(3,14-SFProText-Regular.fnt)
 %Fl(8,20-SFProText-Medium.fnt)
 %Fl(9,16-SFProText-Medium.fnt)
+%Fl(7,35-SFProDisplay-Bold.fnt)
 
 # Preload icons  -  same IDs as Interpod (do not change order or IDs)
 # playerStatus: 16x18 per tile, 4 frames — Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
@@ -46,17 +47,22 @@
 %xl(Z,repeatAB.bmp,1,0)
 %xl(S,shuffle.bmp,42,0)
 %xl(L,losslessIndicator.bmp,0,0)
-%xl(speaker_loud,speaker_loud.bmp,270,1)
-%xl(speaker_too_loud,speaker_too_loud.bmp,300,1)
+%xl(C,speaker_loud.bmp,270,1)
+%xl(D,speaker_too_loud.bmp,300,1)
 
 # Preload pill-shaped progress bar bitmaps
-%xl(pbi,pb.bmp,0,0)
-%xl(pbb,pb_backdrop.bmp,0,0)
-%xl(pab,pb_active.bmp,0,0)
-%xl(pabb,pb_active_backdrop.bmp,0,0)
+%xl(E,pb.bmp,0,0)
+%xl(F,pb_backdrop.bmp,0,0)
+%xl(G,pb_active.bmp,0,0)
+%xl(H,pb_active_backdrop.bmp,0,0)
 # Preload pill-shaped volume bar bitmaps
-%xl(vbi,vb.bmp,0,0)
-%xl(vbb,vb_backdrop.bmp,0,0)
+%xl(I,vb.bmp,0,0)
+%xl(J,vb_backdrop.bmp,0,0)
+
+# Lockscreen assets
+%xl(N,LockNotification.bmp,0,0)
+%xl(O,LockNotifPlay.bmp,0,0,2)
+%xl(Q,LockBatWarn.bmp,0,0)
 
 # ---------
 # Logic
@@ -76,6 +82,9 @@
 
 # Sleep timer
 %?bs<%Vd(sleeptimer)>
+
+# Lockscreen overlay — solid white over WPS when hold is engaged
+%?mh<%Vd(lock_wallpaper)%Vd(lock_clock)%Vd(lock_date)%Vd(lock_notif)%Vd(lock_notif_art)%Vd(lock_notif_title)%Vd(lock_notif_artist)%Vd(lock_notif_play)%Vd(lock_battery)%?bs<%Vd(lock_sleep)>%?pS(0.2)<%Vd(lock_refresh)>|>
 
 # ---------
 # Viewports
@@ -173,13 +182,13 @@
 %Vl(pb,20,-39,-20,4,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%pb(0,0,-,4,image,pbi,backdrop,pbb)
+%pb(0,0,-,4,image,E,backdrop,F)
 
 # Progress bar (active - uses pill bitmap, 1px taller for visual weight)
 %Vl(pb_active,20,-39,-20,5,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%pb(0,0,-,5,image,pab,backdrop,pabb)
+%pb(0,0,-,5,image,G,backdrop,H)
 
 # Elapsed time  -  left, 14pt Regular (RB12 h=18), gray
 %Vl(elapsed_time,18,-32,87,18,3)
@@ -205,7 +214,71 @@
 %Vl(volumebar,0,-40,-,20,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%x(speaker_mute,speaker_mute.bmp,39,8)
-%pv(58,8,204,4,image,vbi,backdrop,vbb)
-%xd(speaker_loud)
-%?if(%pv, >, 0)<%xd(speaker_too_loud)>
+%x(M,speaker_mute.bmp,39,8)
+%pv(58,8,204,4,image,I,backdrop,J)
+%xd(C)
+%?if(%pv, >, 0)<%xd(D)>
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LOCKSCREEN — white background, black/gray text
+# Shown as overlay when hold switch is engaged (WPS context)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Full-screen wallpaper (solid white — covers all normal WPS content)
+%Vl(lock_wallpaper,0,0,-,-,-)
+%Vf(FFFFFF)
+%Vb(FFFFFF)
+%dr(0,0,-,-,FFFFFF)
+
+# Clock — 35pt SF Pro Display Bold (slot 10), black, centered
+%Vl(lock_clock,0,42,-,43,7)
+%Vf(000000)
+%Vb(FFFFFF)
+%ac%?cf<%cH:%cM|%cl:%cM>
+
+# Date — 14pt SF Pro Text Regular (slot 3), secondary gray, centered
+%Vl(lock_date,0,90,-,18,3)
+%Vf(8E8E93)
+%Vb(FFFFFF)
+%s%ac%ca, %cb %ce
+
+# Notification card backdrop — F2F2F7 rounded-rect at (16,155)
+%Vl(lock_notif,16,155,288,70,-)
+%xd(N)
+
+# Notification card: album art thumbnail — 44x44
+%Vl(lock_notif_art,24,168,44,44,-)
+# Intentionally no secondary %Cl/%Cd here.
+# Rockbox keeps one album-art definition per skin, so a second 44x44 load
+# here would override the 150x150 hero art geometry and break the main WPS.
+
+# Notification card: track title — 16pt Medium (slot 9), black
+%Vl(lock_notif_title,76,168,212,20,9)
+%Vf(000000)
+%Vb(F2F2F7)
+%s%al%?it<%it|%fn>
+
+# Notification card: artist — 14pt Regular (slot 3), secondary gray
+%Vl(lock_notif_artist,76,190,212,18,3)
+%Vf(8E8E93)
+%Vb(F2F2F7)
+%s%al%?ia<%ia|>
+
+# Notification card: play/pause indicator — 12x14, dark strokes
+%Vl(lock_notif_play,280,178,12,14,-)
+%?mp<|%xd(Ob)|%xd(Oa)|%xd(Ob)|%xd(Ob)>
+
+# Battery icon — top-right, black text on white
+%Vl(lock_battery,-32,8,-,20,3)
+%Vf(000000)
+%Vb(FFFFFF)
+%?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
+
+# Sleep timer on lockscreen
+%Vl(lock_sleep,-52,10,52,18,3)
+%Vf(8E8E93)
+%Vb(FFFFFF)
+%bs
+
+# Hidden 1x1 VP — forces repaint on track change
+%Vl(lock_refresh,0,0,1,1,-)

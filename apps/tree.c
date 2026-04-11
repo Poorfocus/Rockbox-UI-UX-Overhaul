@@ -803,25 +803,39 @@ static int exit_to_new_screen(int screen)
 /* Apple2026: tag WPS return target when tree starts playback */
 static void tree_set_playback_source_for_wps(void)
 {
+    char selected_path[MAX_PATH];
+
     if (*tc.dirfilter == SHOW_M3U)
     {
+        playback_context_set_playlist(false);
         playback_source_set(PLAYBACK_SOURCE_PLAYLIST_BROWSER);
         return;
     }
 #ifdef HAVE_TAGCACHE
     if (*tc.dirfilter == SHOW_ID3DB)
     {
+        playback_context_set_database(tc.dirlevel, tc.selected_item);
         playback_source_set(PLAYBACK_SOURCE_DATABASE);
         return;
     }
 #endif
+
+    if (!get_current_file(selected_path, sizeof(selected_path)))
+        strmemccpy(selected_path, tc.currdir, sizeof(selected_path));
+
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
     if (!strncmp(tc.currdir, "/Music", 6)
         && (tc.currdir[6] == '/' || tc.currdir[6] == '\0'))
+    {
+        playback_context_set_filesystem(GO_TO_MUSICLIB, selected_path);
         playback_source_set(PLAYBACK_SOURCE_MUSICLIB);
+    }
     else
 #endif
+    {
+        playback_context_set_filesystem(GO_TO_FILEBROWSER, selected_path);
         playback_source_set(PLAYBACK_SOURCE_FILEBROWSER);
+    }
 }
 
 /* main loop, handles key events */

@@ -41,6 +41,7 @@
 #include "keyboard.h"
 #include "screens.h"
 #include "plugin.h"
+#include "file.h"
 #include "talk.h"
 #include "splash.h"
 #include "debug_menu.h"
@@ -497,7 +498,10 @@ MAKE_MENU(info_menu, ID2P(LANG_SYSTEM), 0, Icon_System_menu,
 
 static int main_menu_config(void)
 {
-    plugin_load(PLUGIN_APPS_DIR "/main_menu_config.rock", NULL);
+    if (file_exists(PLUGIN_APPS_DIR "/main_menu_config.rock"))
+        plugin_load(PLUGIN_APPS_DIR "/main_menu_config.rock", NULL);
+    else
+        plugin_load(PLUGIN_DIR "/main_menu_config.rock", NULL);
     return 0;
 }
 

@@ -13,6 +13,16 @@
 #define ROCKPOD_APPLE2026_IPOD 1
 /* Full-bleed list chrome: viewport is LCD width; apply this indent to row content. */
 #define A26_LIST_CONTENT_INSET 16
+/* Shell background (FFFFFF) */
+#define A26_SHELL_BG LCD_RGBPACK(255, 255, 255)
+/* Primary body/header text (000000) */
+#define A26_TEXT_PRIMARY LCD_RGBPACK(0, 0, 0)
+/* Secondary metadata / support text (6E6E73) */
+#define A26_TEXT_SECONDARY LCD_RGBPACK(110, 110, 115)
+/* Tertiary emphasis / progress fill (3C3C43) */
+#define A26_TEXT_TERTIARY LCD_RGBPACK(60, 60, 67)
+/* Accent red (FF2D55) */
+#define A26_ACCENT LCD_RGBPACK(255, 45, 85)
 /* List separator / thin rail (C6C6C8 — Apple opaqueSeparator) */
 #define A26_SHELL_RAIL LCD_RGBPACK(198, 198, 200)
 /* Active progress segment — tertiary family, not pure black */

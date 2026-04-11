@@ -107,7 +107,7 @@ else {
     Write-Host "  [skip] no sim binary or install stamp found; skipping staleness check"
 }
 
-# SBS staleness: warn if SBS is newer than the installed .sbs in runtime
+# Skin staleness: warn if repo SBS/WPS are newer than installed runtime copies
 $sbsRepo    = Join-Path $repoRoot "wps\Apple2026.sbs"
 $sbsRuntime = Join-Path $SimRoot  "wps\Apple2026.sbs"
 if ((Test-Path -LiteralPath $sbsRepo) -and (Test-Path -LiteralPath $sbsRuntime)) {
@@ -119,6 +119,19 @@ if ((Test-Path -LiteralPath $sbsRepo) -and (Test-Path -LiteralPath $sbsRuntime))
     }
     else {
         Write-Host "  [ok]   Apple2026.sbs runtime is current"
+    }
+}
+$wpsRepo    = Join-Path $repoRoot "wps\Apple2026.wps"
+$wpsRuntime = Join-Path $SimRoot  "wps\Apple2026.wps"
+if ((Test-Path -LiteralPath $wpsRepo) -and (Test-Path -LiteralPath $wpsRuntime)) {
+    $repoTime    = (Get-Item -LiteralPath $wpsRepo).LastWriteTime
+    $runtimeTime = (Get-Item -LiteralPath $wpsRuntime).LastWriteTime
+    if ($repoTime -gt $runtimeTime) {
+        Write-Host "  [WARN] wps/Apple2026.wps is newer than installed copy -- run make install"
+        $staleWarn = 1
+    }
+    else {
+        Write-Host "  [ok]   Apple2026.wps runtime is current"
     }
 }
 
