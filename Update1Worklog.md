@@ -75,6 +75,84 @@ Not yet verified interactively in this CLI pass:
 
 ---
 
+## 2026-04-11 -- Quick Screen regression stabilization
+
+### Root cause audit
+
+The simplified Apple2026 Quick Screen still had one brittle dependency left:
+its native body geometry depended on the SBS-selected info viewport.
+
+That handoff was unsafe because `apps/gui/quickscreen.c` captured the themed
+parent viewport before `skin_update()` had switched the SBS to the quickscreen
+content lane. The shell could therefore paint the white quickscreen area while
+the native body still drew against stale viewport state.
+
+### Stabilization approach
+
+**Files changed:** `apps/gui/quickscreen.c`, `DESIGN_SYSTEM.md`,
+`QuickScreenRegressionAudit.md`
+
+Stabilized the Apple2026 Quick Screen by removing that remaining body-level
+dependency on SBS info-viewport routing:
+- the SBS still owns shell/header behavior
+- the quickscreen body now uses a deterministic content frame in code
+- redraw recomputes that fixed body frame every time
+
+### Expected effect
+
+- readable body text no longer depends on `qs_content` activation timing
+- white shell fill can no longer appear without a matching body draw target
+- quickscreen behavior should be consistent across reboot and shell-state
+  transitions
+
+---
+
+## 2026-04-11 -- Quick Screen fallback rebase
+
+### Why the custom path was dropped
+
+Even after the stabilization pass, Apple2026 Quick Screen was still carrying
+more custom surface logic than it had earned:
+- a dedicated `qs_content` SBS lane still existed
+- Apple2026-specific quickscreen body layout/draw code was still active
+- simulator evidence for the new custom body remained weak
+
+At that point the safer product decision was to stop defending the custom body
+experiment and rebase onto the more stable Interpod-style baseline.
+
+### What changed
+
+**Files changed:** `apps/gui/quickscreen.c`, `wps/Apple2026.sbs`,
+`QuickScreenRegressionAudit.md`, `DESIGN_SYSTEM.md`
+
+Rebased Apple2026 Quick Screen to:
+- fixed Apple2026 parent viewport below the compact header
+- native Rockbox quickscreen body layout/draw path
+- SBS shell-only behavior with no dedicated quickscreen body viewport
+
+This intentionally trades visual ambition for stability and readability.
+
+### Verification status
+
+Executed:
+
+```text
+.\build-sim.ps1 -Incremental -SkipDep
+.\build-sim.ps1 -InstallOnly
+.\tools\verify-sim-install.ps1
+```
+
+Result:
+- simulator build/install passed
+- source/runtime quickscreen contract no longer uses `qs_content`
+- active Apple2026 quickscreen path now uses native body rendering again
+
+Not yet fully verified interactively:
+- manual long-PLAY quickscreen open in the simulator/device
+- direct visual confirmation of the restored readable body after this rebase
+
+---
+
 ## 2026-04-10 -- Phase 1: Foundation
 
 ### Dynamic Row Height (list.c)
@@ -138,13 +216,16 @@ distinct icon instead of layering multiple overlapping icons:
 Adjusted `speaker_mute` from `y=8` to `y=5` so the icon centers on the
 same vertical midpoint as the volume rail.
 
-### Transport Icon Convention -- DOCUMENTED, NO CHANGE
+### Transport Icon Convention -- SUPERSEDED
 
-Current behavior is correct per Apple convention:
-- Playing state -> show pause icon
-- Paused state -> show play icon
+This note was later intentionally reversed for Apple2026 iPod ergonomics.
 
-This matches stock iPod OS and Apple Music.
+Current desired behavior:
+- Playing state -> show play icon
+- Paused state -> show pause icon
+
+See `WORK_LOG.md` and `BuildClaimMismatchAudit.md` for the later transport
+mapping adjustment pass.
 
 ### Cover Flow Text Color Fix (pictureflow.c)
 
@@ -491,3 +572,29 @@ Not yet verified interactively:
   up for the normal backlight timeout after engaging hold
 - fresh clean-config run showing the 18px list font and 1 px dividers
   without relying on old runtime `config.cfg`
+
+---
+
+## Audit Correction (2026-04-11)
+
+The earlier Update 1 notes for:
+- battery text density / formatting
+- hold + sleep icon repositioning
+- repeat-state icon simplification
+- mute icon alignment
+
+were audited against committed source, simulator runtime, and published
+hardware zips during the Apple2026 build-vs-claims verification pass.
+
+Result:
+- those fixes had been documented as shipped, but they were **not** actually
+  present in the committed Apple2026 skin source or in the published
+  custom-named release zips at the time of audit
+- the fixes are now present and verified in:
+  - `build-sim/simdisk/.rockbox`
+  - `build-hw-ipod6g/rockbox.zip`
+  - `build-hw-ipodvideo/rockbox.zip`
+- the stale custom-named zips were removed after rebuild
+
+See `BuildClaimMismatchAudit.md` for the full source-vs-artifact comparison,
+root cause, and release verification safeguards.

@@ -583,9 +583,15 @@ static int update_dir(void)
      * level (dirlevel >= 2 means /Music/Artist/Album/ or deeper).
      * At the library root and artist-folder level (dirs only, dirlevel < 2)
      * keep normal 18pt.  Non-music-library surfaces stay normal. */
-    if (!id3db && tc.browse && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB))
-        rockpod_list_font_tier = (tc.dirlevel >= 2) ?
-            ROCKPOD_LIST_FONT_DENSE : ROCKPOD_LIST_FONT_NORMAL;
+    rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
+    if (!id3db && tc.browse && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)) {
+        if (tc.dirlevel >= 2)
+            rockpod_list_font_tier = ROCKPOD_LIST_FONT_DENSE;
+    } else if (id3db) {
+        /* Database lists also switch to dense at the track level */
+        if (tc.dirlevel >= 2)
+            rockpod_list_font_tier = ROCKPOD_LIST_FONT_DENSE;
+    }
 #endif
     if( tc.selected_item >= tc.filesindir)
         tc.selected_item=tc.filesindir-1;
@@ -951,15 +957,23 @@ static int dirbrowse(void)
                     break;
                 }
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-                /* Apple2026: intercept back at the /Music/ boundary for
-                 * music-library sessions.  We guard with dirlevel <= 1 so
-                 * that a corrupted dirlevel (e.g. after a stale-path resume)
-                 * does not fire this early and skip levels.  The path check
-                 * handles the string match; dirlevel <= 1 ensures we are
-                 * actually at (or near) the library root and not deeper. */
+                /* Apple2026: intercept back at the /Music/ boundary so
+                 * the curated music browser returns to the main menu, not
+                 * the raw filesystem root.  path_is_curated_music_library_root()
+                 * is an exact match against "/Music" (trailing-slash tolerant)
+                 * so it cannot false-positive on deeper paths like
+                 * "/Music/Artist/".  The BROWSE_APPLE2026_MUSICLIB flag
+                 * ensures this only fires for the main-menu Music entry,
+                 * never for Extras → Files or other browse sessions.
+                 *
+                 * The previous guard also required dirlevel <= 1, but
+                 * dirlevel can desynchronize from currdir after
+                 * stale-path resumes, playback-context redirects, or
+                 * deep navigation.  Removing the dirlevel constraint
+                 * eliminates the intermittent regression where backing
+                 * out of Music sometimes leaked into the / root. */
                 if (*tc.dirfilter != SHOW_ID3DB && tc.browse
                     && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)
-                    && tc.dirlevel <= 1
                     && path_is_curated_music_library_root(tc.currdir))
                 {
                     if (oldbutton == ACTION_TREE_PGLEFT)

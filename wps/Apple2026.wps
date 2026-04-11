@@ -69,7 +69,7 @@
 # ---------
 
 # Display battery percentage when numeric mode enabled
-%?if(%St(battery display), =, numeric)<%Vd(batterytext)>
+%?mh<|%?if(%St(battery display), =, numeric)<%Vd(batterytext)>>
 
 # Display lock icon when hold slider engaged
 %?mh<%Vd(lock)|%Vd(unlocked)>
@@ -108,17 +108,17 @@
 %V(0,0,-,-,-)
 
 # Player status icon  -  top-left (16x18 tile: Pa=stop Pb=pause-bars Pc=play Pd=ff)
-# Branch: 0=stop 1=play(→show pause-bars) 2=pause(→show play-triangle) 3=ff 4=rew
+# Branch: 0=stop 1=play(→show play-triangle) 2=pause(→show pause-bars) 3=ff 4=rew
 %V(3,5,16,18,-)
 %Vf(000000)
 %Vb(FFFFFF)
-%?mp<|%xd(Pb)|%xd(Pc)|%xd(Pd)|%xd(Pd)|>
+%?mh<|%?mp<|%xd(Pc)|%xd(Pb)|%xd(Pd)|%xd(Pd)|>>
 
 # Battery icon  -  top-right (moved up 2px)
 %V(-32,3,-,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
+%?mh<|%?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>>
 
 # Hold slider locked
 %Vl(lock,24,7,9,12,-)
@@ -133,7 +133,7 @@
 %Vl(batterytext,-70,5,38,18,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%bl, =, 100)<100%%|%bl %%>
+%?if(%bl, =, 100)<100%%|%bl%%>
 
 # Sleep timer text
 %Vl(sleeptimer,37,5,53,18,3)
@@ -145,8 +145,7 @@
 %V(-79,-97,-,30,-)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?mm<|%xd(Ra)|%xd(Ra)%xd(X)|%xd(Ra)%xd(Y)|%xd(Ra)%xd(Z)>
-%?if(%ps, =, s)<%xd(S)|>
+%?mm<|%xd(Ra)|%xd(X)|%xd(Y)|%xd(Z)>
 
 # Playlist position  -  centered in time row (font slot 3, RB12 h=18; VP h=18)
 %Vl(pl_counter,107,-32,106,18,3)
@@ -214,7 +213,7 @@
 %Vl(volumebar,0,-40,-,20,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%x(M,speaker_mute.bmp,39,8)
+%x(M,speaker_mute.bmp,39,5)
 %pv(58,8,204,4,image,I,backdrop,J)
 %xd(C)
 %?if(%pv, >, 0)<%xd(D)>
@@ -248,9 +247,10 @@
 
 # Notification card: album art thumbnail — 44x44
 %Vl(lock_notif_art,24,168,44,44,-)
-# Intentionally no secondary %Cl/%Cd here.
 # Rockbox keeps one album-art definition per skin, so a second 44x44 load
 # here would override the 150x150 hero art geometry and break the main WPS.
+%Vb(F2F2F7)
+%dr(0,0,-,-,F2F2F7)
 
 # Notification card: track title — 16pt Medium (slot 9), black
 %Vl(lock_notif_title,76,168,212,20,9)
@@ -266,7 +266,7 @@
 
 # Notification card: play/pause indicator — 12x14, dark strokes
 %Vl(lock_notif_play,280,178,12,14,-)
-%?mp<|%xd(Ob)|%xd(Oa)|%xd(Ob)|%xd(Ob)>
+%?mp<|%xd(Oa)|%xd(Ob)|%xd(Oa)|%xd(Oa)>
 
 # Battery icon — top-right, black text on white
 %Vl(lock_battery,-32,8,-,20,3)

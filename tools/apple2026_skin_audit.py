@@ -25,6 +25,46 @@ VIEWPORT_RE = re.compile(r"%(V[li])\(([^)]*)\)")
 PRELOAD_RE = re.compile(r"%xl\([^,]+,([^,]+\.bmp)")
 LABEL_RE = re.compile(r"%V[li]\(([^,]+),")
 ALBUMART_LOAD_RE = re.compile(r"%Cl\(")
+CLAIM_CONTRACTS = {
+    "Apple2026.sbs": {
+        "required": [
+            ("%Vl(batterytext,-70,5,38,20,6)", "SBS battery text must use dense slot 6"),
+            ("%Vl(batterytext_root,-70,5,38,20,6)", "root SBS battery text must use dense slot 6"),
+            ("%?if(%bl, =, 100)<100%%|%bl%%>", "battery percentage must not contain a space before '%'"),
+            ("%Vl(lock,-82,6,9,12,-)", "lock icon must live in the right-side battery cluster"),
+            ("%Vl(sleeptimericon,-94,6,9,12,-)", "sleep icon must live in the right-side battery cluster"),
+            ("%?mp<%xd(Pa)|%xd(Pc)|%xd(Pb)|%xd(Pc)|%xd(Pc)>", "SBS mini-player must use the iPod-style play/pause mapping"),
+            ("%?mp<|%xd(Oa)|%xd(Ob)|%xd(Oa)|%xd(Oa)>", "SBS lock notification must use the iPod-style play/pause mapping"),
+        ],
+        "forbidden": [
+            ("%Vl(batterytext,-70,5,38,20,3)", "old SBS battery slot 3 layout must not ship"),
+            ("%Vl(batterytext_root,-70,5,38,20,3)", "old root SBS battery slot 3 layout must not ship"),
+            ("%bl %%", "old battery percentage formatting with a space must not ship"),
+            ("%Vl(lock,24,6,9,12,-)", "old left-side lock icon layout must not ship"),
+            ("%Vl(sleeptimericon,42,6,9,12,-)", "old left-side sleep icon layout must not ship"),
+            ("%?mp<%xd(Pa)|%xd(Pb)|%xd(Pc)|%xd(Pb)|%xd(Pb)>", "old Apple-style SBS mini-player mapping must not ship"),
+            ("%?mp<|%xd(Ob)|%xd(Oa)|%xd(Ob)|%xd(Ob)>", "old Apple-style SBS lock notification mapping must not ship"),
+        ],
+    },
+    "Apple2026.wps": {
+        "required": [
+            ("%?if(%bl, =, 100)<100%%|%bl%%>", "WPS battery percentage must not contain a space before '%'"),
+            ("%?mm<|%xd(Ra)|%xd(X)|%xd(Y)|%xd(Z)>", "repeat display must show one clear icon per mode"),
+            ("%x(M,speaker_mute.bmp,39,5)", "mute icon must align with the volume rail"),
+            ("%?mh<|%?mp<|%xd(Pc)|%xd(Pb)|%xd(Pd)|%xd(Pd)|>>", "WPS status icon must use the iPod-style play/pause mapping"),
+            ("%?mp<|%xd(Oa)|%xd(Ob)|%xd(Oa)|%xd(Oa)>", "WPS lock notification must use the iPod-style play/pause mapping"),
+        ],
+        "forbidden": [
+            ("%bl %%", "old WPS battery percentage formatting with a space must not ship"),
+            ("%?mm<|%xd(Ra)|%xd(Ra)%xd(X)|%xd(Ra)%xd(Y)|%xd(Ra)%xd(Z)>", "layered repeat icons must not ship"),
+            ("%?if(%ps, =, s)<%xd(S)|>", "legacy extra shuffle overlay must not ship"),
+            ("%x(M,speaker_mute.bmp,39,8)", "old mute icon y=8 alignment must not ship"),
+            ("%x(speaker_mute,speaker_mute.bmp,39,8)", "old named mute icon y=8 alignment must not ship"),
+            ("%?mh<|%?mp<|%xd(Pb)|%xd(Pc)|%xd(Pd)|%xd(Pd)|>>", "old Apple-style WPS status mapping must not ship"),
+            ("%?mp<|%xd(Ob)|%xd(Oa)|%xd(Ob)|%xd(Ob)>", "old Apple-style WPS lock notification mapping must not ship"),
+        ],
+    },
+}
 
 
 def sha1(path: Path) -> str:
@@ -72,6 +112,7 @@ def resolved_rect(parts: list[str]) -> tuple[int, int, int, int]:
 def audit_skin(path: Path) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8", errors="replace")
+    contract = CLAIM_CONTRACTS.get(path.name, {})
 
     labels = [label for label in LABEL_RE.findall(text) if label != "-"]
     for label, count in Counter(labels).items():
@@ -90,6 +131,13 @@ def audit_skin(path: Path) -> list[str]:
         errors.append(
             f"{path.name}: token count {token_count} exceeds WPS_MAX_TOKENS {WPS_MAX_TOKENS}"
         )
+
+    for needle, reason in contract.get("required", []):
+        if needle not in text:
+            errors.append(f"{path.name}: missing claim contract '{needle}' ({reason})")
+    for needle, reason in contract.get("forbidden", []):
+        if needle in text:
+            errors.append(f"{path.name}: found forbidden legacy pattern '{needle}' ({reason})")
 
     for lineno, line in enumerate(text.splitlines(), 1):
         match = VIEWPORT_RE.search(line)

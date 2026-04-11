@@ -80,6 +80,8 @@ This checks that `make install` produced `rockboxui.exe`, `themes/Apple2026.cfg`
 3. **`make`**: parallel compile — `rockboxui.exe` (sim) or firmware + codecs + plugins (hw).
 4. **`make install` (sim)** / **`make zip` (hw)**: `tools/buildzip.pl` packages resources; themes go through `wps/wpsbuild.pl` and `wps/WPSLIST` (fonts, WPS/SBS, icons copied into the output tree).
 
+Apple2026 guardrail: `build-sim.sh` now runs `tools/apple2026_skin_audit.py` against the simulator install tree, and `build-hw.sh` runs the same audit against the generated `rockbox.zip`. If the Apple2026 source, runtime install, or hardware zip drift apart, the build should fail instead of producing a misleading release artifact.
+
 Apple2026 assets (`fonts/`, `icons/`, `wps/Apple2026/`) are **copied** at install/zip time. Optional Python generators (below) are **not** run automatically.
 
 ---

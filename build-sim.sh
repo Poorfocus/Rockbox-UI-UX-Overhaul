@@ -207,6 +207,8 @@ if [ "$INSTALL_ONLY" -eq 1 ]; then
     fi
     sync_all_fonts "$(pwd)"
     check_asset_freshness "$(pwd)"
+    echo "RockPod: auditing Apple2026 source vs simulator install..."
+    python3 ../tools/apple2026_skin_audit.py --package-root "$(pwd)/simdisk/.rockbox"
     exit 0
 fi
 
@@ -315,3 +317,6 @@ if command -v sed >/dev/null 2>&1; then
     done
     echo "RockPod: theme files normalized to LF."
 fi
+
+echo "RockPod: auditing Apple2026 source vs simulator install..."
+python3 ../tools/apple2026_skin_audit.py --package-root "$SIMDISK"

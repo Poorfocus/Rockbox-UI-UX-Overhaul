@@ -688,13 +688,22 @@ static struct menu_callback_with_desc root_menu_desc = {
  * Cover Flow is second since it is a core playback surface, not a utility.
  * System (info/credits/debug) folded into Settings; accessible via
  * Settings > General Settings > System.
- * Extras menu gathers Plugins, Shortcuts, Recording for non-core access. */
+ * Extras menu gathers Files (full filesystem), Plugins, Shortcuts,
+ * Recording for non-core access.
+ *
+ * Files (GO_TO_FILEBROWSER) is the standard full-disk browser.  It uses
+ * separate state (last_folder), has no BROWSE_APPLE2026_MUSICLIB flag,
+ * and follows normal ft_exit() back-navigation to '/'.  This is
+ * architecturally distinct from Music (GO_TO_MUSICLIB) which is bounded
+ * to /Music/ and returns to the main menu on back. */
+MENUITEM_RETURNVALUE(files_browser, "Files", GO_TO_FILEBROWSER,
+                     NULL, Icon_file_view_menu);
 #ifdef HAVE_RECORDING
 MAKE_MENU(extras_submenu, "Extras", 0, Icon_Plugin,
-          &rocks_browser, &shortcut_menu, &rec);
+          &files_browser, &rocks_browser, &shortcut_menu, &rec);
 #else
 MAKE_MENU(extras_submenu, "Extras", 0, Icon_Plugin,
-          &rocks_browser, &shortcut_menu);
+          &files_browser, &rocks_browser, &shortcut_menu);
 #endif
 
 static struct menu_table menu_table[] = {
@@ -1137,9 +1146,6 @@ void root_menu(void)
                 /* When we are in the main menu we want the hardware BACK
                  * button to be handled by HOST instead of rockbox */
                 ignore_back_button_stub(true);
-#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-                rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
-#endif
                 next_screen = do_menu(&root_menu_, &selected, NULL, false);
 
                 ignore_back_button_stub(false);
@@ -1154,11 +1160,6 @@ void root_menu(void)
             case GO_TO_FILEBROWSER:
             case GO_TO_MUSICLIB:
             case GO_TO_PLAYLISTS_SCREEN:
-#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-                /* Music library and file browser start normal; tree.c will
-                 * switch to DENSE when the user descends into track-level folders. */
-                rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
-#endif
                 previous_browser = next_screen;
                 goto load_next_screen;
                 break;

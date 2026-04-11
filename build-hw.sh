@@ -194,3 +194,5 @@ ROCKPOD_CFG
 else
     echo "RockPod: WARNING — config.cfg injection skipped (rockbox.zip missing)."
 fi
+echo "RockPod: auditing Apple2026 source vs rockbox.zip..."
+python3 ../tools/apple2026_skin_audit.py --zip-artifact rockbox.zip

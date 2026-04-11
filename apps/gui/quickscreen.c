@@ -185,261 +185,20 @@ static void quickscreen_fix_viewports(struct gui_quickscreen *qs,
 }
 
 #if ROCKPOD_APPLE2026_IPOD
-static void quickscreen_get_item_text(const struct settings_list *item,
-                                      char *buf, size_t buf_size,
-                                      const unsigned char **title,
-                                      const unsigned char **value)
+static void quickscreen_set_parent_apple2026(struct screen *display,
+                                             struct viewport *parent)
 {
-    int temp;
+    viewport_set_fullscreen(parent, display->screen_type);
+    parent->flags &= ~VP_FLAG_ALIGNMENT_MASK;
+    parent->font = 6;
+    parent->fg_pattern = A26_TEXT_PRIMARY;
+    parent->bg_pattern = A26_SHELL_BG;
 
-    *title = (const unsigned char *)"";
-    *value = (const unsigned char *)"";
-    if (!item)
-        return;
-
-    *title = P2STR(ID2P(item->lang_id));
-    temp = option_value_as_int(item);
-    *value = option_get_valuestring(item, buf, buf_size, temp);
-}
-
-static void quickscreen_fix_viewports_apple2026(
-        struct viewport *parent,
-        struct viewport vps[QUICKSCREEN_ITEM_COUNT],
-        struct viewport *vp_icons,
-        struct viewport *vp_volume)
-{
-    int line_height = font_get(parent->font)->height;
-    int zone_height = line_height * 2 + 4;
-    int top_margin = 12;
-    int side_pad = 18;
-    int center_gap = 44;
-    int volume_gap = 18;
-    int volume_width = parent->width - 112;
-    int volume_y = parent->y + parent->height - 16;
-    int bottom_y = volume_y - zone_height - volume_gap;
-    int middle_y = parent->y + (parent->height - zone_height) / 2 - 2;
-    int top_width = parent->width - 72;
-    int side_width = (parent->width - (side_pad * 2) - center_gap) / 2;
-
-    if (top_width < 120)
-        top_width = parent->width;
-    if (side_width < 96)
-        side_width = 96;
-    if (volume_width < 80)
-        volume_width = parent->width - 32;
-
-    vps[QUICKSCREEN_TOP] = *parent;
-    vps[QUICKSCREEN_TOP].x = parent->x + (parent->width - top_width) / 2;
-    vps[QUICKSCREEN_TOP].y = parent->y + top_margin;
-    vps[QUICKSCREEN_TOP].width = top_width;
-    vps[QUICKSCREEN_TOP].height = zone_height;
-    vps[QUICKSCREEN_TOP].flags &= ~VP_FLAG_ALIGNMENT_MASK;
-    vps[QUICKSCREEN_TOP].flags |= VP_FLAG_ALIGN_CENTER;
-
-    vps[QUICKSCREEN_BOTTOM] = *parent;
-    vps[QUICKSCREEN_BOTTOM].x = vps[QUICKSCREEN_TOP].x;
-    vps[QUICKSCREEN_BOTTOM].y = bottom_y;
-    vps[QUICKSCREEN_BOTTOM].width = top_width;
-    vps[QUICKSCREEN_BOTTOM].height = zone_height;
-    vps[QUICKSCREEN_BOTTOM].flags &= ~VP_FLAG_ALIGNMENT_MASK;
-    vps[QUICKSCREEN_BOTTOM].flags |= VP_FLAG_ALIGN_CENTER;
-
-    vps[QUICKSCREEN_LEFT] = *parent;
-    vps[QUICKSCREEN_LEFT].x = parent->x + side_pad;
-    vps[QUICKSCREEN_LEFT].y = middle_y;
-    vps[QUICKSCREEN_LEFT].width = side_width;
-    vps[QUICKSCREEN_LEFT].height = zone_height;
-    vps[QUICKSCREEN_LEFT].flags &= ~VP_FLAG_ALIGNMENT_MASK;
-
-    vps[QUICKSCREEN_RIGHT] = *parent;
-    vps[QUICKSCREEN_RIGHT].x = parent->x + parent->width - side_pad - side_width;
-    vps[QUICKSCREEN_RIGHT].y = middle_y;
-    vps[QUICKSCREEN_RIGHT].width = side_width;
-    vps[QUICKSCREEN_RIGHT].height = zone_height;
-    vps[QUICKSCREEN_RIGHT].flags &= ~VP_FLAG_ALIGNMENT_MASK;
-    vps[QUICKSCREEN_RIGHT].flags |= VP_FLAG_ALIGN_RIGHT;
-
-    *vp_icons = *parent;
-    vp_icons->width = center_gap;
-    vp_icons->height = center_gap;
-    vp_icons->x = parent->x + (parent->width - center_gap) / 2;
-    vp_icons->y = parent->y + (parent->height - center_gap) / 2 - 4;
-
-    *vp_volume = *parent;
-    vp_volume->width = volume_width;
-    vp_volume->height = 8;
-    vp_volume->x = parent->x + (parent->width - volume_width) / 2;
-    vp_volume->y = volume_y;
-}
-
-static void quickscreen_draw_arrow_apple2026(struct screen *display,
-                                             struct viewport *vp_icons,
-                                             enum quickscreen_item item)
-{
-    int x = 0;
-    int y = 0;
-
-    switch (item)
+    if (parent->height > 30)
     {
-        case QUICKSCREEN_TOP:
-        {
-            static const signed char pts[] = {
-                4,0,
-                3,1,4,1,5,1,
-                2,2,3,2,4,2,5,2,6,2,
-                1,3,2,3,3,3,4,3,5,3,6,3,7,3,
-                0,4,1,4,2,4,6,4,7,4,8,4,
-            };
-            x = (vp_icons->width - 9) / 2;
-            y = 1;
-            for (int i = 0; i < (int)(sizeof(pts)/2); ++i)
-                display->drawpixel(x + pts[i * 2], y + pts[i * 2 + 1]);
-            break;
-        }
-        case QUICKSCREEN_BOTTOM:
-        {
-            static const signed char pts[] = {
-                0,0,1,0,2,0,6,0,7,0,8,0,
-                1,1,2,1,3,1,4,1,5,1,6,1,7,1,
-                2,2,3,2,4,2,5,2,6,2,
-                3,3,4,3,5,3,
-                4,4,
-            };
-            x = (vp_icons->width - 9) / 2;
-            y = vp_icons->height - 6;
-            for (int i = 0; i < (int)(sizeof(pts)/2); ++i)
-                display->drawpixel(x + pts[i * 2], y + pts[i * 2 + 1]);
-            break;
-        }
-        case QUICKSCREEN_LEFT:
-        {
-            static const signed char pts[] = {
-                0,4,
-                1,3,1,4,1,5,
-                2,2,2,3,2,4,2,5,2,6,
-                3,1,3,2,3,3,3,4,3,5,3,6,3,7,
-                4,0,4,1,4,2,4,6,4,7,4,8,
-            };
-            x = 1;
-            y = (vp_icons->height - 9) / 2;
-            for (int i = 0; i < (int)(sizeof(pts)/2); ++i)
-                display->drawpixel(x + pts[i * 2], y + pts[i * 2 + 1]);
-            break;
-        }
-        case QUICKSCREEN_RIGHT:
-        {
-            static const signed char pts[] = {
-                4,4,
-                3,3,3,4,3,5,
-                2,2,2,3,2,4,2,5,2,6,
-                1,1,1,2,1,3,1,4,1,5,1,6,1,7,
-                0,0,0,1,0,2,0,6,0,7,0,8,
-            };
-            x = vp_icons->width - 6;
-            y = (vp_icons->height - 9) / 2;
-            for (int i = 0; i < (int)(sizeof(pts)/2); ++i)
-                display->drawpixel(x + pts[i * 2], y + pts[i * 2 + 1]);
-            break;
-        }
-        default:
-            break;
+        parent->y += 30;
+        parent->height -= 30;
     }
-}
-
-static void quickscreen_draw_item_apple2026(const struct settings_list *item,
-                                            struct screen *display,
-                                            struct viewport *vp)
-{
-    char buf[MAX_PATH];
-    const unsigned char *title;
-    const unsigned char *value;
-
-    if (!item)
-        return;
-
-    quickscreen_get_item_text(item, buf, sizeof(buf), &title, &value);
-
-    display->set_viewport(vp);
-    display->set_foreground(A26_TEXT_SECONDARY);
-    display->puts(0, 0, title);
-    display->set_foreground(A26_TEXT_PRIMARY);
-    display->puts(0, 1, value);
-}
-
-static void gui_quickscreen_draw_apple2026(
-        const struct gui_quickscreen *qs,
-        struct screen *display,
-        struct viewport *parent,
-        struct viewport vps[QUICKSCREEN_ITEM_COUNT],
-        struct viewport *vp_icons,
-        struct viewport *vp_volume)
-{
-    int minvol;
-    int maxvol;
-    int curvol;
-    int range;
-    int fill = 0;
-    int cx;
-    int cy;
-    struct viewport *last_vp = display->set_viewport(parent);
-
-    display->set_background(A26_SHELL_BG);
-    display->set_foreground(A26_TEXT_PRIMARY);
-    display->clear_viewport();
-
-    cx = (vp_icons->x - parent->x) + (vp_icons->width / 2);
-    cy = (vp_icons->y - parent->y) + (vp_icons->height / 2);
-
-    display->set_viewport(parent);
-    display->set_foreground(A26_SHELL_RAIL);
-    display->vline(cx, cy - 28, cy - 10);
-    display->vline(cx, cy + 10, cy + 28);
-    display->hline(cx - 28, cx - 10, cy);
-    display->hline(cx + 10, cx + 28, cy);
-
-    display->set_viewport(vp_icons);
-    display->set_foreground(A26_TEXT_TERTIARY);
-    if (qs->items[QUICKSCREEN_TOP])
-        quickscreen_draw_arrow_apple2026(display, vp_icons, QUICKSCREEN_TOP);
-    if (qs->items[QUICKSCREEN_BOTTOM])
-        quickscreen_draw_arrow_apple2026(display, vp_icons, QUICKSCREEN_BOTTOM);
-    if (qs->items[QUICKSCREEN_LEFT])
-        quickscreen_draw_arrow_apple2026(display, vp_icons, QUICKSCREEN_LEFT);
-    if (qs->items[QUICKSCREEN_RIGHT])
-        quickscreen_draw_arrow_apple2026(display, vp_icons, QUICKSCREEN_RIGHT);
-
-    quickscreen_draw_item_apple2026(qs->items[QUICKSCREEN_TOP],
-                                    display, &vps[QUICKSCREEN_TOP]);
-    quickscreen_draw_item_apple2026(qs->items[QUICKSCREEN_LEFT],
-                                    display, &vps[QUICKSCREEN_LEFT]);
-    quickscreen_draw_item_apple2026(qs->items[QUICKSCREEN_RIGHT],
-                                    display, &vps[QUICKSCREEN_RIGHT]);
-    quickscreen_draw_item_apple2026(qs->items[QUICKSCREEN_BOTTOM],
-                                    display, &vps[QUICKSCREEN_BOTTOM]);
-
-    minvol = sound_min(SOUND_VOLUME);
-    maxvol = sound_max(SOUND_VOLUME);
-    curvol = sound_current(SOUND_VOLUME);
-    range = maxvol - minvol;
-    if (range > 0)
-        fill = (vp_volume->width * (curvol - minvol)) / range;
-    if (fill < 0)
-        fill = 0;
-    if (fill > vp_volume->width)
-        fill = vp_volume->width;
-
-    display->set_viewport(vp_volume);
-    display->set_foreground(A26_PROGRESS_TRACK);
-    display->fillrect(0, 2, vp_volume->width, 4);
-    if (fill > 0)
-    {
-        display->set_foreground(A26_PROGRESS_FILL);
-        display->fillrect(0, 2, fill, 4);
-    }
-
-    display->set_viewport(parent);
-    display->update_viewport();
-    display->set_viewport(last_vp);
 }
 #endif /* ROCKPOD_APPLE2026_IPOD */
 
@@ -695,9 +454,6 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
     struct viewport parent[NB_SCREENS];
     struct viewport vps[NB_SCREENS][QUICKSCREEN_ITEM_COUNT];
     struct viewport vp_icons[NB_SCREENS];
-#if ROCKPOD_APPLE2026_IPOD
-    struct viewport vp_volume[NB_SCREENS];
-#endif
     int ret = QUICKSCREEN_OK;
     /* To quit we need either :
      *  - a second press on the button that made us enter
@@ -714,14 +470,16 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
     {
         screens[i].set_viewport(NULL);
         screens[i].scroll_stop();
-        viewportmanager_theme_enable(i, true, &parent[i]);
 #if ROCKPOD_APPLE2026_IPOD
-        quickscreen_fix_viewports_apple2026(&parent[i], vps[i], &vp_icons[i],
-                                            &vp_volume[i]);
+        viewportmanager_theme_enable(i, true, NULL);
         skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-        gui_quickscreen_draw_apple2026(qs, &screens[i], &parent[i], vps[i],
-                                       &vp_icons[i], &vp_volume[i]);
+        quickscreen_set_parent_apple2026(&screens[i], &parent[i]);
+        quickscreen_fix_viewports(qs, &screens[i], &parent[i], vps[i],
+                                  &vp_icons[i]);
+        gui_quickscreen_draw(qs, &screens[i], &parent[i], vps[i],
+                             &vp_icons[i]);
 #else
+        viewportmanager_theme_enable(i, true, &parent[i]);
         quickscreen_fix_viewports(qs, &screens[i], &parent[i], vps[i], &vp_icons[i]);
         gui_quickscreen_draw(qs, &screens[i], &parent[i], vps[i], &vp_icons[i]);
         skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
@@ -750,9 +508,11 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
             {
 #if ROCKPOD_APPLE2026_IPOD
                 skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-                gui_quickscreen_draw_apple2026(qs, &screens[i], &parent[i],
-                                               vps[i], &vp_icons[i],
-                                               &vp_volume[i]);
+                quickscreen_set_parent_apple2026(&screens[i], &parent[i]);
+                quickscreen_fix_viewports(qs, &screens[i], &parent[i], vps[i],
+                                          &vp_icons[i]);
+                gui_quickscreen_draw(qs, &screens[i], &parent[i], vps[i],
+                                     &vp_icons[i]);
 #else
                 gui_quickscreen_draw(qs, &screens[i], &parent[i],
                                      vps[i], &vp_icons[i]);

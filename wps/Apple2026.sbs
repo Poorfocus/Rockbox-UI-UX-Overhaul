@@ -48,13 +48,15 @@
 
 # ── Shell routing ─────────────────────────────────────────────────────────────
 #
-# VI selection — %mp branch mapping (numeric, 0-indexed):
-#   branch 0 = STATUS_STOP  → main_full (no bottom bar, full content area)
-#   branch 1 = STATUS_PLAY  → mainlarge (content above 44px mini-player)
-#   branch 2 = STATUS_PAUSE → mainlarge (content above 44px mini-player, paused)
-#   %Lo true = at root → _lt variant (starts at y=38, below large title)
+# VI selection:
+#   Lockscreen (cs=1 + hold) → lock_empty (1x1, suppresses list rendering)
+#   Normal → mp-based routing:
+#     branch 0 = STATUS_STOP  → main_full (no bottom bar, full content area)
+#     branch 1 = STATUS_PLAY  → mainlarge (content above 44px mini-player)
+#     branch 2 = STATUS_PAUSE → mainlarge (content above 44px mini-player, paused)
+#     %Lo true = at root → _lt variant (starts at y=38, below large title)
 #
-%?if(%cs, =, 10)<%VI(qs_content)|%?mp<%?Lo<%VI(main_full_lt)|%VI(main_full)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>>>
+%?if(%cs, =, 1)<%?mh<%VI(lock_empty)|%?mp<%?Lo<%VI(main_full_lt)|%VI(main_full)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>>>|%?mp<%?Lo<%VI(main_full_lt)|%VI(main_full)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>|%?Lo<%VI(mainlarge_lt)|%VI(mainlarge)>>>>
 #
 # Bottom bar + volume:
 #   Stopped (branch 0)  → no bottom bar rendered
@@ -64,18 +66,19 @@
 #
 %?if(%cs, =, 10)<|%?mp<|%Vd(bottombarsmall)%?mv(1.2)<%?if(%pv, >, 0)<%Vd(volumebar_small_clip)|%Vd(volumebar_small_noclip)>|%?C<%Vd(mp_albumart)%Vd(mp_track)|%Vd(mp_track_noart)>%Vd(mp_playpause)>|%Vd(bottombarsmall)%?mv(1.2)<%?if(%pv, >, 0)<%Vd(volumebar_small_clip)|%Vd(volumebar_small_noclip)>|%?C<%Vd(mp_albumart)%Vd(mp_track)|%Vd(mp_track_noart)>%Vd(mp_playpause)>>>
 #
-# Header indicators (battery/lock/busy — playback state is bottom bar only, calmer shell)
-%?Lo<%Vd(battery_icon_root)|%Vd(battery_icon)>
-%?if(%St(battery display), =, numeric)<%?Lo<%Vd(batterytext_root)|%Vd(batterytext)>>
-%?mh<%Vd(lock)>
-%?bs<%Vd(sleeptimericon)>
-%?lh<%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>
+# Header indicators — suppressed during homescreen lockscreen (cs=1 + hold)
+# Lockscreen draws its own battery/status/clock; this prevents double indicators.
+%?if(%cs, =, 1)<%?mh<|%?Lo<%Vd(battery_icon_root)|%Vd(battery_icon)>>|%?Lo<%Vd(battery_icon_root)|%Vd(battery_icon)>>
+%?if(%cs, =, 1)<%?mh<|%?if(%St(battery display), =, numeric)<%?Lo<%Vd(batterytext_root)|%Vd(batterytext)>>>|%?if(%St(battery display), =, numeric)<%?Lo<%Vd(batterytext_root)|%Vd(batterytext)>>>
+%?if(%cs, =, 1)<|%?mh<%Vd(lock)>>
+%?if(%cs, =, 1)<%?mh<|%?bs<%Vd(sleeptimericon)>>|%?bs<%Vd(sleeptimericon)>>
+%?if(%cs, =, 1)<%?mh<|%?lh<%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>|%?lh<%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>
 #
-# Header title — suppressed at root (large title replaces it)
+# Header title — suppressed at root (large title replaces it) and during lockscreen
 %?Lo<|%?if(%St(battery display), =, numeric)<%Vd(title)|%Vd(titlewide)>>
 #
-# Large title — root only
-%?Lo<%Vd(large_title)|>
+# Large title — root only, suppressed during lockscreen
+%?if(%cs, =, 1)<%?mh<|%?Lo<%Vd(large_title)|>>|%?Lo<%Vd(large_title)|>>
 #
 # USB backdrop
 %?if(%cs, =, 21)<%xd(M)>
@@ -139,34 +142,29 @@
 %Vf(FFFFFF)
 %Vb(FFFFFF)
 
-# Quick Screen content viewport — real themed content area below the header
-%Vi(qs_content,0,30,-,-,6)
-%Vf(FFFFFF)
-%Vb(FFFFFF)
-
 # ── Lock icon ─────────────────────────────────────────────────────────────────
-%Vl(lock,24,6,9,12,-)
+%Vl(lock,-82,6,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
 
-%Vl(unlocked,24,6,9,12,-)
+%Vl(unlocked,-82,6,9,12,-)
 %Vb(FFFFFF)
 
 # ── Battery percentage text ───────────────────────────────────────────────────
-# Font slot 3 RB12 h=20px; VP height = 20 to prevent clipping.
-%Vl(batterytext,-70,5,38,20,3)
+# Font slot 6 RB12 h=20px; VP height = 20 to prevent clipping.
+%Vl(batterytext,-70,5,38,20,6)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%bl, =, 100)<100%%|%bl %%>
+%?if(%bl, =, 100)<100%%|%bl%%>
 
 # ── Battery text within large-title band (root only) ───────────────────────
-%Vl(batterytext_root,-70,5,38,20,3)
+%Vl(batterytext_root,-70,5,38,20,6)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%bl, =, 100)<100%%|%bl %%>
+%?if(%bl, =, 100)<100%%|%bl%%>
 
 # ── Sleep timer icon ──────────────────────────────────────────────────────────
-%Vl(sleeptimericon,42,6,9,12,-)
+%Vl(sleeptimericon,-94,6,9,12,-)
 %Vb(FFFFFF)
 %xd(S)
 
@@ -224,12 +222,12 @@
 %s%al%?it<%it|%fn>
 
 # Play/pause indicator in mini-player — 16x18 Apple-native icon, right-aligned
-# Pa=stop  Pb=pause-bars(playing)  Pc=play-triangle(paused)  Pd=ff
-# Branch: 0=stop(hidden) 1=play→Pb(pause-bars) 2=pause→Pc(play-fill) 3+=Pb
+# Pa=stop  Pb=pause-bars  Pc=play-triangle  Pd=ff
+# Branch: 0=stop(hidden) 1=play→Pc(play-fill) 2=pause→Pb(pause-bars) 3+=Pc
 %Vl(mp_playpause,-30,-31,16,18,-)
 %Vf(000000)
 %Vb(FFFFFF)
-%?mp<%xd(Pa)|%xd(Pb)|%xd(Pc)|%xd(Pb)|%xd(Pb)>
+%?mp<%xd(Pa)|%xd(Pc)|%xd(Pb)|%xd(Pc)|%xd(Pc)>
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # VOLUME BARS — rendered inside the 44px mini-player bar when adjusting volume
@@ -280,9 +278,10 @@
 %xd(N)
 
 %Vl(home_lock_notif_art,24,168,44,44,-)
-# Intentionally no secondary %Cl/%Cd here.
 # Rockbox keeps one album-art definition per skin, so a second 44x44 load
 # here would override the 32x32 mini-player geometry and crop the bottom tab.
+%Vb(F2F2F7)
+%dr(0,0,-,-,F2F2F7)
 
 %Vl(home_lock_title,76,168,190,20,3)
 %Vf(000000)
@@ -295,6 +294,6 @@
 %s%al%?ia<%ia|>
 
 %Vl(home_lock_play,280,178,12,14,-)
-%?mp<|%xd(Ob)|%xd(Oa)|%xd(Ob)|%xd(Ob)>
+%?mp<|%xd(Oa)|%xd(Ob)|%xd(Oa)|%xd(Oa)>
 
 %Vl(home_lock_refresh,0,0,1,1,-)

@@ -287,6 +287,29 @@ Built on the work of the [Rockbox](https://www.rockbox.org/) project and its con
 - **MFi reference:** [ipod-gadget](https://github.com/oandrew/ipod-gadget) descriptor layout, [rockbox-mojyack](https://github.com/mojyack/rockbox) iPod 5G iAP implementation, Apple MFi Accessory Firmware Specification
 - **Inter typeface:** by Rasmus Andersson (SIL OFL 1.1) — https://rsms.me/inter/
 
+## AI Tooling Disclosure
+
+This project was developed with heavy AI assistance as part of an experimental personal workflow.
+
+The main models/tools used were:
+- **Anthropic Opus 4.6**
+- **Anthropic Sonnet 4.6**
+- **OpenAI GPT-5.4**
+- **OpenAI Codex 5.3**
+
+I am not a traditional firmware developer — this project is primarily a UI/UX experiment built around features, behaviors, and design changes I personally wanted to explore on my own iPod.
+
+Because of that, this fork should be treated as a beta / research project rather than a fully validated production firmware build.
+
+> [!WARNING]
+> This is an **unsupported experimental fork** of Rockbox/Rockpod and is still in active beta development.
+>
+> It is built primarily for personal use, testing, and UI/UX experimentation, and it may contain bugs, regressions, instability, or unexpected behavior.
+>
+> Please **back up your iPod and music library before installing**. Use at your own risk.
+>
+> For the cleanest install, delete the existing `.rockbox` folder on your iPod and replace it fully with the one from the release that matches your model.
+
 ## License
 
 [GNU General Public License v2.0](LICENSE)

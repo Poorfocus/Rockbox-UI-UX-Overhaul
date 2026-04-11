@@ -41,6 +41,7 @@
 #include "wps_internals.h"
 #include "skin_albumart_color.h"
 #include "debug.h"
+#include "button.h"
 
 #define FAILSAFENAME "rockbox_failsafe"
 
@@ -83,6 +84,12 @@ static struct gui_skin {
     bool                failsafe_loaded;
     bool                needs_full_update;
 } skins[SKINNABLE_SCREENS_COUNT][NB_SCREENS];
+
+static signed char hold_state_cache[SKINNABLE_SCREENS_COUNT][NB_SCREENS] = {
+    [0 ... SKINNABLE_SCREENS_COUNT - 1] = {
+        [0 ... NB_SCREENS - 1] = -1
+    }
+};
 
 int skin_get_num_skins(void)
 {
@@ -339,11 +346,33 @@ bool skin_do_full_update(enum skinnable_screens skin,
                             enum screen_type screen)
 {
     struct viewport *vp = *(screens[screen].current_viewport);
+    bool hold_changed = false;
 
     bool vp_is_dirty = ((vp->flags & VP_FLAG_VP_SET_CLEAN) == VP_FLAG_VP_DIRTY) &&
                        get_current_activity() == ACTIVITY_WPS;
 
-    bool ret = (skins[skin][screen].needs_full_update || vp_is_dirty);
+#if defined(HAVE_TOUCHSCREEN) || defined(HAS_BUTTON_HOLD)
+    if (screen == SCREEN_MAIN)
+    {
+        bool held = false;
+#ifdef HAVE_TOUCHSCREEN
+        held = skins[skin][screen].data.touchscreen_locked;
+#endif
+#ifdef HAS_BUTTON_HOLD
+        held = held || button_hold();
+#endif
+        if (hold_state_cache[skin][screen] < 0)
+            hold_state_cache[skin][screen] = held;
+        else if (hold_state_cache[skin][screen] != held)
+        {
+            hold_state_cache[skin][screen] = held;
+            hold_changed = true;
+        }
+    }
+#endif
+
+    bool ret = (skins[skin][screen].needs_full_update || vp_is_dirty ||
+                hold_changed);
     skins[skin][screen].needs_full_update = false;
     return ret;
 }
