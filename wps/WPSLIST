@@ -92,6 +92,53 @@ ui viewport: -
 </theme>
 
 <theme>
+Name: Apple2026-Dark
+Authors: RockPod Apple2026 Dark Mode implementation
+WPS: yes
+RWPS: no
+SBS: yes
+RSBS: no
+FMS: no
+RFMS: no
+
+<main>
+wps.320x240x(16|24|32): Apple2026-Dark.wps
+sbs.320x240x(16|24|32): Apple2026-Dark.sbs
+
+# Apple2026-Dark: Dark mode variant with same structure as light mode
+# 20px SF Pro Text Regular (FONT_UI); list row floor 30px; dark theme (fff on 000)
+# SBS: 28px SF Pro Display Bold (Library large title, slot 2); 32px title viewport
+# Icon strip: 30x30 tiles, reused from Apple2026Icons.bmp
+Font.320x240x(16|24|32): 20-SFProText-Regular.fnt
+
+foreground color: ffffff
+background color: 000000
+line selector start color: 333333
+line selector end color: 333333
+line selector text color: ffffff
+selector type..+x(16|24|32): bar (color)
+
+iconset.320x240x(16|24|32): icons/Apple2026Icons.bmp
+viewers iconset..+x(16|24|32): -
+show icons: on
+statusbar: top
+ui viewport: -
+scrollbar: right
+scrollbar width: 2
+list separator height: 1
+list separator color: 3A3A3C
+</main>
+
+<remote>
+iconset: -
+viewers iconset: -
+statusbar: top
+ui viewport: -
+</remote>
+
+</theme>
+
+<theme>
 Name: rockbox_failsafe
 Author: Rockbox team
 

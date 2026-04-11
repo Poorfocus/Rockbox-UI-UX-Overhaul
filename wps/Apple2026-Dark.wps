@@ -1,0 +1,211 @@
+# Apple2026-Dark WPS  -  Major Polish Pass (Dark Mode)
+# Base: Interpod Rev.17 structural DNA
+# 320x240  -  iPod Classic 6G/7G and iPod Video 5G/5.5G
+#
+# Font heights (RB12 actual, not nominal):
+#   Slot 3: 14-SFProText-Regular.fnt   -> h=18px
+#   Slot 8: 20-SFProText-Medium.fnt    -> h=25px (unused in layout)
+#   Slot 9: 16-SFProText-Medium.fnt    -> h=20px
+#
+# Bottom-zone layout (abs y, 240px screen, art bottom = y=158):
+#   gap:          2px
+#   Title         y=160  h=20  font 9 (16pt Medium, RB12 h=20)
+#   Artist/Album  y=180  h=18  font 3 (14pt Regular, RB12 h=18) alternating
+#   gap:          3px
+#   pb bar        y=201  h=4   bitmap pill bar (Apple Music style, 4px)
+#   gap:          3px
+#   time row      y=208  h=18  font 3 (14pt Regular, RB12 h=18)
+#   bottom pad:   14px remaining (to screen edge at 240)
+#
+# Bottom-relative equivalents (240 - abs_y):
+#   Title   y=-80  (240-160=80)
+#   ArtAlb  y=-60  (240-180=60)
+#   pb      y=-39  (240-201=39)
+#   time    y=-32  (240-208=32)
+#   vbar    y=-40  replaces pb+time while adjusting volume
+
+# Disable status bar
+%wd
+
+# Font slots (3 slots only - all verified present in fonts/)
+# Slot 3: 14-SFProText-Regular.fnt  (RB12 h=18)
+# Slot 8: 20-SFProText-Medium.fnt   (RB12 h=25, kept for compat)
+# Slot 9: 16-SFProText-Medium.fnt   (RB12 h=20, title)
+%Fl(3,14-SFProText-Regular.fnt)
+%Fl(8,20-SFProText-Medium.fnt)
+%Fl(9,16-SFProText-Medium.fnt)
+
+# Preload icons  -  same IDs as Interpod (do not change order or IDs)
+# playerStatus: 16x18 per tile, 4 frames — Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
+%xl(P,playerStatus.bmp,0,0,4)
+%xl(A,holdSlider.bmp,0,0,2)
+%xl(B,batteryStatus.bmp,0,4,10)
+%xl(R,repeat.bmp,20,0)
+%xl(X,repeatOne.bmp,5,0)
+%xl(Y,repeatShuffle.bmp,5,0)
+%xl(Z,repeatAB.bmp,1,0)
+%xl(S,shuffle.bmp,42,0)
+%xl(L,losslessIndicator.bmp,0,0)
+%xl(speaker_loud,speaker_loud.bmp,270,1)
+%xl(speaker_too_loud,speaker_too_loud.bmp,300,1)
+
+# Preload pill-shaped progress bar bitmaps
+%xl(pbi,pb.bmp,0,0)
+%xl(pbb,pb_backdrop.bmp,0,0)
+%xl(pab,pb_active.bmp,0,0)
+%xl(pabb,pb_active_backdrop.bmp,0,0)
+# Preload pill-shaped volume bar bitmaps
+%xl(vbi,vb.bmp,0,0)
+%xl(vbb,vb_backdrop.bmp,0,0)
+
+# ---------
+# Logic
+# ---------
+
+# Display battery percentage when numeric mode enabled
+%?if(%St(battery display), =, numeric)<%Vd(batterytext)>
+
+# Display lock icon when hold slider engaged
+%?mh<%Vd(lock)|%Vd(unlocked)>
+
+# Display volume bar while adjusting volume; otherwise show time+progress
+%?mv(1.2)<%Vd(volumebar)|%Vd(pl_counter)%Vd(elapsed_time)%Vd(lossless_ind)%Vd(remain_time)%?if(%mp,<,4)<%Vd(pb)|%Vd(pb_active)>>
+
+# Always display artist/album alternating viewports
+%Vd(artist_line)%Vd(album_line)
+
+# Sleep timer
+%?bs<%Vd(sleeptimer)>
+
+# ---------
+# Viewports
+# ---------
+
+# Global backdrop layer
+%V(0,0,-,-,-)%VB
+%x(WPSBackdrop,wpsBackdrop.bmp,0,0)
+
+# Album art  -  150x150, centered (x=85), y=8
+# %VB pattern (Interpod-proven): art compositor buffer
+# 1A1A1A fill for dark mode, matches dark backdrop
+%V(85,8,150,150,-)%VB
+%Vf(FFFFFF)
+%Vb(1A1A1A)
+%Cl(0,0,150,150,c,c)
+%?C<|%x(AlbumPlaceholder,albumPlaceholder.bmp,0,0)>
+%Cd
+
+# Main display layer  -  chrome on top of backdrop
+%V(0,0,-,-,-)
+
+# Player status icon  -  top-left (16x18 tile: Pa=stop Pb=pause-bars Pc=play Pd=ff)
+# Branch: 0=stop 1=play(→show pause-bars) 2=pause(→show play-triangle) 3=ff 4=rew
+%V(3,5,16,18,-)
+%Vf(FFFFFF)
+%Vb(000000)
+%?mp<|%xd(Pb)|%xd(Pc)|%xd(Pd)|%xd(Pd)|>
+
+# Battery icon  -  top-right (moved up 2px)
+%V(-32,3,-,20,3)
+%Vf(FFFFFF)
+%Vb(000000)
+%?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
+
+# Hold slider locked
+%Vl(lock,24,7,9,12,-)
+%Vb(000000)
+%xd(Ab)
+
+# Hold slider unlocked (empty viewport to satisfy Vd logic)
+%Vl(unlocked,24,7,9,12,-)
+%Vb(000000)
+
+# Battery percentage text (font slot 3, RB12 h=18; VP h=18)
+%Vl(batterytext,-70,5,38,18,3)
+%Vf(FFFFFF)
+%Vb(000000)
+%?if(%bl, =, 100)<100%%|%bl %%>
+
+# Sleep timer text
+%Vl(sleeptimer,37,5,53,18,3)
+%Vf(FFFFFF)
+%Vb(000000)
+%bs
+
+# Repeat / shuffle indicators  -  upper-right area
+%V(-79,-97,-,30,-)
+%Vf(CCCCCC)
+%Vb(000000)
+%?mm<|%xd(Ra)|%xd(Ra)%xd(X)|%xd(Ra)%xd(Y)|%xd(Ra)%xd(Z)>
+%?if(%ps, =, s)<%xd(S)|>
+
+# Playlist position  -  centered in time row (font slot 3, RB12 h=18; VP h=18)
+%Vl(pl_counter,107,-32,106,18,3)
+%Vf(CCCCCC)
+%Vb(000000)
+%ac%pp %Sx(of) %pe
+
+# Song title  -  16pt Medium (slot 9, RB12 h=20); VP h=20 to prevent clipping
+%V(18,-80,-18,20,9)
+%Vf(FFFFFF)
+%Vb(000000)
+%s%al%?it<%it|%fn>
+
+# Artist / Album  -  14pt Regular (slot 3, RB12 h=18); VP h=18
+# Single viewport alternates: 5s artist (gray), then 5s album (darker gray)
+# Using a single VP avoids one blank subline overwriting the other's content
+%Vl(artist_line,18,-60,-20,18,3)
+%Vf(AAAAAA)
+%Vb(000000)
+%t(5)%s%al%?ia<%ia|%fn>;%t(5)%s%al%?id<%id|%fn>
+
+# album_line is kept as an empty named VP so %Vd(album_line) in logic is harmless
+%Vl(album_line,0,0,0,0,-)
+%Vf(000000)
+%Vb(000000)
+
+# -------------------------------------------------------
+# Progress bar  -  bitmap pill bars (restored from Interpod pattern)
+# 280x8 / 280x9 pill BMPs generated by apple2026_wps_pill_bars.py
+# -------------------------------------------------------
+
+# Progress bar (inactive - uses pill bitmap)
+%Vl(pb,20,-39,-20,4,-)
+%Vf(CCCCCC)
+%Vb(222222)
+%pb(0,0,-,4,image,pbi,backdrop,pbb)
+
+# Progress bar (active - uses pill bitmap, 1px taller for visual weight)
+%Vl(pb_active,20,-39,-20,5,-)
+%Vf(CCCCCC)
+%Vb(222222)
+%pb(0,0,-,5,image,pab,backdrop,pabb)
+
+# Elapsed time  -  left, 14pt Regular (RB12 h=18), gray
+%Vl(elapsed_time,18,-32,87,18,3)
+%Vf(CCCCCC)
+%Vb(000000)
+%s%al%pc
+
+# Lossless indicator  -  right of center, only shown for lossless formats
+%Vl(lossless_ind,200,-28,33,11,-)
+%Vb(000000)
+%?or(%if(%fc, =, 4),%if(%fc, =, 5),%if(%fc, =, 7),%if(%fc, =, 11),%if(%fc, =, 13))<%xd(L)>
+
+# Remaining time  -  right, 14pt Regular (RB12 h=18), gray
+%Vl(remain_time,-87,-32,-20,18,3)
+%Vf(CCCCCC)
+%Vb(000000)
+%s%ar-%pr
+
+# -------------------------------------------------------
+# Volume bar  -  shown while scroll wheel adjusts volume
+# Occupies the progress+time zone (y=-40, h=20)
+# -------------------------------------------------------
+%Vl(volumebar,0,-40,-,20,-)
+%Vf(CCCCCC)
+%Vb(222222)
+%x(speaker_mute,speaker_mute.bmp,39,8)
+%pv(58,8,204,4,image,vbi,backdrop,vbb)
+%xd(speaker_loud)
+%?if(%pv, >, 0)<%xd(speaker_too_loud)>
