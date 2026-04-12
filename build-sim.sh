@@ -1,5 +1,6 @@
 #!/bin/sh
 cd "$(dirname "$0")"
+APPLE2026_THEME_VERSION="Update3"
 
 detect_jobs() {
     if [ -n "${JOBS:-}" ]; then
@@ -109,6 +110,46 @@ check_asset_freshness() {
     fi
 }
 
+write_sim_config() {
+    local simdisk="$1"
+
+    if [ ! -d "$simdisk" ]; then
+        return
+    fi
+
+    cat > "$simdisk/config.cfg" <<'ROCKPOD_CFG'
+wps: /.rockbox/wps/Apple2026.wps
+fms: -
+sbs: /.rockbox/wps/Apple2026.sbs
+selector type: bar (color)
+foreground color: 000000
+background color: ffffff
+line selector start color: E5E5EA
+line selector end color: E5E5EA
+line selector text color: 000000
+list separator height: 1
+list separator color: C6C6C8
+font: /.rockbox/fonts/18-SFProText-Regular.fnt
+statusbar: top
+iconset: /.rockbox/icons/Apple2026Icons.bmp
+viewers iconset: -
+show icons: on
+ui viewport: -
+scrollbar: right
+scrollbar width: 2
+disable main menu scrolling: on
+dynamic colors: off
+backlight on button hold: normal
+qs top: brightness
+qs left: shuffle
+qs right: repeat
+qs bottom: sleeptimer duration
+ROCKPOD_CFG
+    echo "RockPod: config.cfg written to simdisk."
+    printf '%s\n' "$APPLE2026_THEME_VERSION" > "$simdisk/.apple2026_version"
+    echo "RockPod: .apple2026_version written to simdisk."
+}
+
 prepare_core_generated_headers() {
     builddir_unix=$(pwd)
 
@@ -207,8 +248,13 @@ if [ "$INSTALL_ONLY" -eq 1 ]; then
     fi
     sync_all_fonts "$(pwd)"
     check_asset_freshness "$(pwd)"
+    write_sim_config "$(pwd)/simdisk/.rockbox"
     echo "RockPod: auditing Apple2026 source vs simulator install..."
     python3 ../tools/apple2026_skin_audit.py --package-root "$(pwd)/simdisk/.rockbox"
+    echo "RockPod: auditing packaged simulator plugins..."
+    python3 ../tools/verify_plugin_package.py \
+        --build-dir "$(pwd)" \
+        --package-root "$(pwd)/simdisk/.rockbox"
     exit 0
 fi
 
@@ -278,35 +324,7 @@ check_asset_freshness "$(pwd)"
 
 # Write config.cfg so Apple2026 theme loads automatically on simulator start.
 SIMDISK="$(pwd)/simdisk/.rockbox"
-if [ -d "$SIMDISK" ]; then
-    cat > "$SIMDISK/config.cfg" <<'ROCKPOD_CFG'
-wps: /.rockbox/wps/Apple2026.wps
-fms: -
-sbs: /.rockbox/wps/Apple2026.sbs
-selector type: bar (color)
-foreground color: 000000
-background color: ffffff
-line selector start color: E5E5EA
-line selector end color: E5E5EA
-line selector text color: 000000
-list separator height: 1
-list separator color: C6C6C8
-font: /.rockbox/fonts/20-SFProText-Regular.fnt
-statusbar: top
-iconset: /.rockbox/icons/Apple2026Icons.bmp
-viewers iconset: -
-show icons: on
-ui viewport: -
-scrollbar: right
-scrollbar width: 2
-disable main menu scrolling: on
-qs top: brightness
-qs left: shuffle
-qs right: repeat
-qs bottom: sleeptimer duration
-ROCKPOD_CFG
-    echo "RockPod: config.cfg written to simdisk."
-fi
+write_sim_config "$SIMDISK"
 
 # Normalize line endings in all text theme files to LF.
 # Rockbox skin parser is LF-only; CRLF (Windows default) causes silent parse failure.
@@ -320,3 +338,7 @@ fi
 
 echo "RockPod: auditing Apple2026 source vs simulator install..."
 python3 ../tools/apple2026_skin_audit.py --package-root "$SIMDISK"
+echo "RockPod: auditing packaged simulator plugins..."
+python3 ../tools/verify_plugin_package.py \
+    --build-dir "$(pwd)" \
+    --package-root "$SIMDISK"

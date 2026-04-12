@@ -496,17 +496,43 @@ MAKE_MENU(info_menu, ID2P(LANG_SYSTEM), 0, Icon_System_menu,
 /*      INFO MENU                  */
 /***********************************/
 
-static int main_menu_config(void)
+static const char *main_menu_config_path(void)
 {
     if (file_exists(PLUGIN_APPS_DIR "/main_menu_config.rock"))
-        plugin_load(PLUGIN_APPS_DIR "/main_menu_config.rock", NULL);
-    else
-        plugin_load(PLUGIN_DIR "/main_menu_config.rock", NULL);
+        return PLUGIN_APPS_DIR "/main_menu_config.rock";
+    if (file_exists(PLUGIN_DIR "/main_menu_config.rock"))
+        return PLUGIN_DIR "/main_menu_config.rock";
+    return NULL;
+}
+
+static int main_menu_config_menu_cb(int action,
+                                    const struct menu_item_ex *this_item,
+                                    struct gui_synclist *this_list)
+{
+    (void)this_item;
+    (void)this_list;
+
+    if (action == ACTION_REQUEST_MENUITEM && main_menu_config_path() == NULL)
+        return ACTION_EXIT_MENUITEM;
+    return action;
+}
+
+static int main_menu_config(void)
+{
+    const char *plugin = main_menu_config_path();
+
+    if (plugin == NULL)
+    {
+        splash(HZ*2, ID2P(LANG_PLUGIN_ERROR));
+        return 0;
+    }
+
+    plugin_load(plugin, NULL);
     return 0;
 }
 
 MENUITEM_FUNCTION(main_menu_config_item, 0, ID2P(LANG_MAIN_MENU),
-                  main_menu_config, NULL, Icon_Rockbox);
+                  main_menu_config, main_menu_config_menu_cb, Icon_Rockbox);
 
 /***********************************/
 /*    MAIN MENU                    */

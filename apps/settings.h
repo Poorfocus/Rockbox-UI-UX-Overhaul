@@ -339,17 +339,6 @@ const char* setting_get_cfgvals(const struct settings_list *setting);
 
 /** global_settings and global_status struct definitions **/
 
-/* Apple2026: where playback was started — hierarchical WPS browse return */
-enum playback_source {
-    PLAYBACK_SOURCE_NONE = 0,
-    PLAYBACK_SOURCE_PICTUREFLOW,
-    PLAYBACK_SOURCE_MUSICLIB,
-    PLAYBACK_SOURCE_FILEBROWSER,
-    PLAYBACK_SOURCE_DATABASE,
-    PLAYBACK_SOURCE_PLAYLIST_BROWSER,
-    PLAYBACK_SOURCE_PLAYLIST_VIEWER,
-};
-
 /* Apple2026: explicit WPS return context captured at playback start. */
 enum playback_context {
     PLAYBACK_CONTEXT_NONE = 0,
@@ -388,7 +377,6 @@ struct system_status
 
     bool resume_modified; /* playlist is modified (=> warn before erase) */
 
-    signed char playback_source; /* enum playback_source; RAM session state */
     signed char playback_context; /* enum playback_context; RAM session state */
     int playback_context_screen;
     int playback_context_dirlevel;
@@ -980,7 +968,6 @@ extern struct user_settings global_settings;
 /* global status */
 extern struct system_status global_status;
 
-void playback_source_set(enum playback_source src);
 void playback_context_clear(void);
 void playback_context_set_root(void);
 void playback_context_set_pictureflow_tracklist(void);

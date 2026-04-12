@@ -618,6 +618,9 @@ static PFreal auto_slide_spacing;
 static PFreal offsetY;
 static int number_of_slides;
 static bool show_tracks_while_browsing = false;
+/* Restore the current song once on tracklist entry, then give control back
+ * to the user's own tracklist browsing. */
+static bool pf_tracklist_focus_playing_track_once = false;
 
 static struct pf_slide_cache pf_sldcache;
 
@@ -699,6 +702,8 @@ int load_surface(int);
 static void draw_progressbar(int step, int count, char *msg);
 static void draw_splashscreen(unsigned char * buf_tmp, size_t buf_tmp_size);
 static void free_all_slide_prio(int prio);
+static void schedule_tracklist_playing_focus(void);
+static void focus_playing_track_once(void);
 
 static inline void buf_ctx_lock(void)
 {
@@ -3702,6 +3707,7 @@ static void update_scroll_animation(void)
 */
 static void cleanup(void)
 {
+    rb->skin_render_inhibit_flush(false);
     wants_to_quit = true;
     if (buf_ctx_locked)
         buf_ctx_unlock();
@@ -4063,6 +4069,7 @@ static void update_cover_in_animation(void)
     {
         cover_animation_keyframe = 0;
         pf_state = pf_show_tracks;
+        schedule_tracklist_playing_focus();
     }
 }
 
@@ -4095,6 +4102,7 @@ static void skip_animation_to_show_tracks(void)
 {
     pf_state = pf_show_tracks;
     cover_animation_keyframe = 0;
+    schedule_tracklist_playing_focus();
 
     extra_fade =            ZOOMIN_FRAME_COUNT * ZOOMIN_FRAME_FADE;
     center_slide.distance = ZOOMIN_FRAME_COUNT * ZOOMIN_FRAME_DIST;
@@ -4150,9 +4158,16 @@ static int pf_track_row_height(void)
         rb->lcd_setfont(pf_tracklist_font_id);
         h = rb->screens[SCREEN_MAIN]->getcharheight();
         rb->lcd_setfont(FONT_UI);
+        if (h < 28)
+            h = 28;
         return h;
     }
-    return rb->screens[SCREEN_MAIN]->getcharheight();
+    {
+        int h = rb->screens[SCREEN_MAIN]->getcharheight();
+        if (h < 28)
+            h = 28;
+        return h;
+    }
 }
 
 /* Vertical space for album + artist (matches draw_album_text). */
@@ -4176,7 +4191,10 @@ static int pf_album_title_font_id = -1;
 
 static int pf_track_row_height(void)
 {
-    return rb->screens[SCREEN_MAIN]->getcharheight();
+    int h = rb->screens[SCREEN_MAIN]->getcharheight();
+    if (h < 28)
+        h = 28;
+    return h;
 }
 
 static int pf_album_block_px(int ui_char_h)
@@ -4252,6 +4270,49 @@ void reset_track_list(void)
     }
 }
 
+static void schedule_tracklist_playing_focus(void)
+{
+#if PF_PLAYBACK_CAPABLE
+    pf_tracklist_focus_playing_track_once =
+        rb->global_status->playback_context ==
+        PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST &&
+        rb->audio_status();
+#else
+    pf_tracklist_focus_playing_track_once = false;
+#endif
+}
+
+static void focus_playing_track_once(void)
+{
+#if PF_PLAYBACK_CAPABLE
+    const struct mp3entry *playing;
+    int i;
+
+    if (!pf_tracklist_focus_playing_track_once)
+        return;
+
+    pf_tracklist_focus_playing_track_once = false;
+
+    playing = rb->audio_current_track();
+    if (!playing)
+        return;
+
+    for (i = 0; i < pf_tracks.count; i++)
+    {
+        if (!rb->strcmp(get_track_filename(i), playing->path))
+        {
+            pf_tracks.sel = i;
+            if (i < pf_tracks.list_start)
+                pf_tracks.list_start = i;
+            else if (pf_tracks.list_visible > 0 &&
+                     i >= pf_tracks.list_start + pf_tracks.list_visible)
+                pf_tracks.list_start = i - pf_tracks.list_visible + 1;
+            break;
+        }
+    }
+#endif
+}
+
 static void draw_album_text(void);
 static void show_track_list_loading(void)
 {
@@ -4312,26 +4373,7 @@ static bool show_track_list(void)
         reset_track_list();
     }
 
-    if (rb->global_status->playback_context ==
-        PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST &&
-        rb->audio_status())
-    {
-        const struct mp3entry *playing = rb->audio_current_track();
-        if (playing)
-        {
-            int i;
-            for (i = 0; i < pf_tracks.count; i++)
-            {
-                if (!rb->strcmp(get_track_filename(i), playing->path))
-                {
-                    pf_tracks.sel = i;
-                    if (pf_tracks.list_visible > 0 && i >= pf_tracks.list_visible)
-                        pf_tracks.list_start = i - pf_tracks.list_visible + 1;
-                    break;
-                }
-            }
-        }
-    }
+    focus_playing_track_once();
 
     int titletxt_w, titletxt_x, color, titletxt_h;
     titletxt_h = pf_tracks.list_row_h > 0 ? pf_tracks.list_row_h
@@ -4387,6 +4429,8 @@ static void select_next_track(bool allow_wrap)
     if (pf_tracks.count <= 0)
         return;
 
+    pf_tracklist_focus_playing_track_once = false;
+
     if ( pf_tracks.sel < pf_tracks.count - 1 ) {
         pf_tracks.sel++;
         if (pf_tracks.sel==(pf_tracks.list_visible+pf_tracks.list_start))
@@ -4401,6 +4445,8 @@ static void select_prev_track(bool allow_wrap)
 {
     if (pf_tracks.count <= 0)
         return;
+
+    pf_tracklist_focus_playing_track_once = false;
 
     if (pf_tracks.sel > 0 ) {
         if (pf_tracks.sel==pf_tracks.list_start) pf_tracks.list_start--;
@@ -4714,7 +4760,6 @@ static bool start_playback(bool return_to_WPS)
     rb->global_status->playback_context_dirlevel = 0;
     rb->global_status->playback_context_selection = 0;
     rb->global_status->playback_context_path[0] = '\0';
-    rb->global_status->playback_source = PLAYBACK_SOURCE_PICTUREFLOW;
     old_shuffle = shuffle;
 #ifdef USEGSLIB
     if (!return_to_WPS)
@@ -5127,6 +5172,8 @@ static int pictureflow_main(void)
     int fpstxt_y;
     bool instant_update;
 
+    rb->skin_render_inhibit_flush(false);
+
     while (true) {
         /* Get input first. The SBS renders during get_custom_action() and
          * writes into the framebuffer (including decorative viewports that
@@ -5459,6 +5506,8 @@ static int pictureflow_main(void)
 
 /*************************** Plugin entry point ****************************/
 
+#define PF_LAUNCH_RETURN_TO_TRACKLIST "apple2026:return-tracklist"
+
 enum plugin_status plugin_start(const void *parameter)
 {
     struct viewport *vp_main = rb->lcd_set_viewport(NULL);
@@ -5473,6 +5522,9 @@ enum plugin_status plugin_start(const void *parameter)
     int ret;
     const char *file = parameter;
     bool file_id3 = (parameter && (((char *) parameter)[0] == '/'));
+    bool return_to_tracklist = parameter != NULL && !file_id3 &&
+                               !rb->strcmp((const char *)parameter,
+                                           PF_LAUNCH_RETURN_TO_TRACKLIST);
 
     if (!check_database())
     {
@@ -5497,8 +5549,7 @@ enum plugin_status plugin_start(const void *parameter)
         set_initial_slide(file_id3 ? file : NULL); /* may call splash */
 #if PF_PLAYBACK_CAPABLE
         /* Apple2026: WPS → Cover Flow lands on album tracklist, not idle grid */
-        if (rb->global_status->playback_source == PLAYBACK_SOURCE_PICTUREFLOW
-            && rb->audio_status())
+        if (return_to_tracklist && rb->audio_status())
             skip_animation_to_show_tracks();
 #endif
         rb->button_clear_queue();

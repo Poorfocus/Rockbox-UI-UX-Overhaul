@@ -10,6 +10,7 @@
 
 use strict;
 
+use File::Basename qw(basename dirname);
 use File::Copy; # For move() and copy()
 use File::Find; # For find()
 use File::Path qw(mkpath rmtree); # For rmtree()
@@ -76,6 +77,29 @@ sub glob_unlink {
     foreach my $path (glob($pattern)) {
         unlink($path);
     }
+}
+
+sub strip_line_endings {
+    my ($line) = @_;
+    $line =~ s/[\r\n]+\z//;
+    return $line;
+}
+
+sub move_file {
+    my ($src, $dest) = @_;
+    return 0 unless -e $src;
+
+    my $destdir = dirname($dest);
+    glob_mkdir($destdir) unless -d $destdir;
+
+    move($src, $dest) or die "failed moving $src -> $dest: $!\n";
+    print "mv $src $dest\n" if $verbose;
+    return 1;
+}
+
+sub move_file_into_dir {
+    my ($src, $destdir) = @_;
+    return move_file($src, "$destdir/" . basename($src));
 }
 
 sub find_copyfile {
@@ -505,6 +529,9 @@ sub buildzip {
         die "can't create $temp_dir/viewers.config";
 
     foreach my $line (@viewers) {
+        $line = strip_line_endings($line);
+        next if $line eq "";
+
         if ($line =~ /([^,]*),([^,]*),/) {
             my ($ext, $plugin)=($1, $2);
             my $r = "${plugin}.rock";
@@ -528,20 +555,20 @@ sub buildzip {
                 if($dir ne "rocks") {
                     # target is not 'rocks' but the plugins are always in that
                     # dir at first!
-                    move("$temp_dir/rocks/$name", "$temp_dir/rocks/$r");
+                    move_file("$temp_dir/rocks/$name", "$temp_dir/rocks/$r");
                 }
-                print VIEWERS $line;
+                print VIEWERS "$line\n";
             }
             elsif(-e "$temp_dir/rocks/$r") {
                 # in case the same plugin works for multiple extensions, it
                 # was already moved to the viewers dir
-                print VIEWERS $line;
+                print VIEWERS "$line\n";
             }
 
             if(-e "$temp_dir/rocks/$oname") {
                 # if there's an "overlay" file for the .rock, move that as
                 # well
-                move("$temp_dir/rocks/$oname", "$temp_dir/rocks/$dir");
+                move_file_into_dir("$temp_dir/rocks/$oname", "$temp_dir/rocks/$dir");
             }
         }
     }
@@ -552,23 +579,27 @@ sub buildzip {
     my @rock_targetdirs = <CATEGORIES>;
     close CATEGORIES;
     foreach my $line (@rock_targetdirs) {
+        $line = strip_line_endings($line);
+        next if $line eq "";
+
         if ($line =~ /([^,]*),(.*)/) {
             my ($plugin, $dir)=($1, $2);
             if($dir  eq 'games' and substr(${plugin}, 0, 4) eq "sgt-") {
-                glob_mkdir("$temp_dir/rocks/$dir/sgt_puzzles");
-                move("$temp_dir/rocks/${plugin}.rock", "$temp_dir/rocks/$dir/sgt_puzzles/${plugin}.rock");
+                move_file("$temp_dir/rocks/${plugin}.rock",
+                          "$temp_dir/rocks/$dir/sgt_puzzles/${plugin}.rock");
             }
             else {
-                move("$temp_dir/rocks/${plugin}.rock", "$temp_dir/rocks/$dir/${plugin}.rock");
+                move_file("$temp_dir/rocks/${plugin}.rock",
+                          "$temp_dir/rocks/$dir/${plugin}.rock");
             }
             if(-e "$temp_dir/rocks/${plugin}.ovl") {
                 # if there's an "overlay" file for the .rock, move that as
                 # well
-                move("$temp_dir/rocks/${plugin}.ovl", "$temp_dir/rocks/$dir");
+                move_file_into_dir("$temp_dir/rocks/${plugin}.ovl", "$temp_dir/rocks/$dir");
             }
             if(-e "$temp_dir/rocks/${plugin}.lua") {
                 # if this is a lua script, move it to the appropriate dir
-                move("$temp_dir/rocks/${plugin}.lua", "$temp_dir/rocks/$dir/");
+                move_file_into_dir("$temp_dir/rocks/${plugin}.lua", "$temp_dir/rocks/$dir");
             }
         }
     }

@@ -44,7 +44,6 @@
 # Lockscreen assets
 %xl(N,LockNotification.bmp,0,0)
 %xl(O,LockNotifPlay.bmp,0,0,2)
-%xl(Q,LockBatWarn.bmp,0,0)
 
 # ── Shell routing ─────────────────────────────────────────────────────────────
 #
@@ -146,9 +145,6 @@
 %Vl(lock,-82,6,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
-
-%Vl(unlocked,-82,6,9,12,-)
-%Vb(FFFFFF)
 
 # ── Battery percentage text ───────────────────────────────────────────────────
 # Font slot 6 RB12 h=20px; VP height = 20 to prevent clipping.
@@ -277,11 +273,10 @@
 %Vl(home_lock_notif,16,155,288,70,-)
 %xd(N)
 
-%Vl(home_lock_notif_art,24,168,44,44,-)
-# Rockbox keeps one album-art definition per skin, so a second 44x44 load
-# here would override the 32x32 mini-player geometry and crop the bottom tab.
+%Vl(home_lock_notif_art,30,174,32,32,-)
+# SBS can safely reuse the existing 32x32 mini-player album-art geometry.
 %Vb(F2F2F7)
-%dr(0,0,-,-,F2F2F7)
+%Cd
 
 %Vl(home_lock_title,76,168,190,20,3)
 %Vf(000000)

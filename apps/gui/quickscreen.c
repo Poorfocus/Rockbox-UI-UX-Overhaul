@@ -188,17 +188,11 @@ static void quickscreen_fix_viewports(struct gui_quickscreen *qs,
 static void quickscreen_set_parent_apple2026(struct screen *display,
                                              struct viewport *parent)
 {
-    viewport_set_fullscreen(parent, display->screen_type);
+    (void)display;
     parent->flags &= ~VP_FLAG_ALIGNMENT_MASK;
     parent->font = 6;
     parent->fg_pattern = A26_TEXT_PRIMARY;
     parent->bg_pattern = A26_SHELL_BG;
-
-    if (parent->height > 30)
-    {
-        parent->y += 30;
-        parent->height -= 30;
-    }
 }
 #endif /* ROCKPOD_APPLE2026_IPOD */
 
@@ -471,7 +465,7 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
         screens[i].set_viewport(NULL);
         screens[i].scroll_stop();
 #if ROCKPOD_APPLE2026_IPOD
-        viewportmanager_theme_enable(i, true, NULL);
+        viewportmanager_theme_enable(i, true, &parent[i]);
         skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
         quickscreen_set_parent_apple2026(&screens[i], &parent[i]);
         quickscreen_fix_viewports(qs, &screens[i], &parent[i], vps[i],

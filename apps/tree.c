@@ -154,14 +154,22 @@ static char *strip_leading_track_index_for_display(char *dst, size_t dstlen,
                                                    const char *name)
 {
     const char *p = name;
+    int digits = 0;
 
     if (!name || dstlen == 0)
         return strmemccpy(dst, "", dstlen);
     while (*p >= '0' && *p <= '9')
+    {
         p++;
+        digits++;
+    }
+    if (digits < 1 || digits > 3)
+        return strmemccpy(dst, name, dstlen);
     if (*p != '.')
         return strmemccpy(dst, name, dstlen);
     p++;
+    if (*p != ' ')
+        return strmemccpy(dst, name, dstlen);
     while (*p == ' ')
         p++;
     if (*p == '\0')
@@ -198,8 +206,15 @@ static const char* tree_get_filename(int selected_item, void *data,
     if (!(attr & ATTR_DIRECTORY)
         && (attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
     {
-        strip_leading_track_index_for_display(strip_buf, sizeof(strip_buf), name);
-        display = strip_buf;
+        bool is_music_tracklist = local_tc->browse
+            && (local_tc->browse->flags & BROWSE_APPLE2026_MUSICLIB)
+            && local_tc->dirlevel >= 2;
+
+        if (is_music_tracklist)
+        {
+            strip_leading_track_index_for_display(strip_buf, sizeof(strip_buf), name);
+            display = strip_buf;
+        }
     }
 #else
     const char *display = name;
@@ -253,6 +268,21 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
         }
 #endif
         return filetype_get_icon(entry->attr);
+    }
+}
+
+static bool tree_item_is_navigable(int selected_item, void * data)
+{
+    struct tree_context * local_tc=(struct tree_context *)data;
+#ifdef HAVE_TAGCACHE
+    bool id3db = *(local_tc->dirfilter) == SHOW_ID3DB;
+
+    if (id3db)
+        return tagtree_get_attr(local_tc) == ATTR_DIRECTORY;
+#endif
+    {
+        struct entry *entry = get_valid_entry(__func__, local_tc, selected_item);
+        return (entry->attr & ATTR_DIRECTORY) != 0;
     }
 }
 
@@ -573,6 +603,7 @@ static int update_dir(void)
     gui_synclist_set_nb_items(list, tc.filesindir);
     gui_synclist_set_icon_callback(list,
                             global_settings.show_icons?tree_get_fileicon:NULL);
+    gui_synclist_set_navigable_callback(list, tree_item_is_navigable);
     gui_synclist_set_voice_callback(list, &tree_voice_cb);
 #ifdef HAVE_LCD_COLOR
     gui_synclist_set_color_callback(list, &tree_get_filecolor);
@@ -582,16 +613,20 @@ static int update_dir(void)
      * 16pt font when we have descended at least one folder below the artist
      * level (dirlevel >= 2 means /Music/Artist/Album/ or deeper).
      * At the library root and artist-folder level (dirs only, dirlevel < 2)
-     * keep normal 18pt.  Non-music-library surfaces stay normal. */
-    rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
+     * keep normal 18pt.  For the database browser, key off the actual tagtree
+     * row type so album/category lists stay normal while track lists go dense. */
+    rockpod_list_font_tier_t tier = ROCKPOD_LIST_FONT_NORMAL;
     if (!id3db && tc.browse && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)) {
         if (tc.dirlevel >= 2)
-            rockpod_list_font_tier = ROCKPOD_LIST_FONT_DENSE;
-    } else if (id3db) {
-        /* Database lists also switch to dense at the track level */
-        if (tc.dirlevel >= 2)
-            rockpod_list_font_tier = ROCKPOD_LIST_FONT_DENSE;
+            tier = ROCKPOD_LIST_FONT_DENSE;
     }
+#ifdef HAVE_TAGCACHE
+    else if (id3db) {
+        if (tagtree_get_attr(&tc) == FILE_ATTR_AUDIO)
+            tier = ROCKPOD_LIST_FONT_DENSE;
+    }
+#endif
+    gui_synclist_set_font_tier(list, tier);
 #endif
     if( tc.selected_item >= tc.filesindir)
         tc.selected_item=tc.filesindir-1;
@@ -807,21 +842,19 @@ static int exit_to_new_screen(int screen)
 }
 
 /* Apple2026: tag WPS return target when tree starts playback */
-static void tree_set_playback_source_for_wps(void)
+static void tree_set_playback_context_for_wps(void)
 {
     char selected_path[MAX_PATH];
 
     if (*tc.dirfilter == SHOW_M3U)
     {
         playback_context_set_playlist(false);
-        playback_source_set(PLAYBACK_SOURCE_PLAYLIST_BROWSER);
         return;
     }
 #ifdef HAVE_TAGCACHE
     if (*tc.dirfilter == SHOW_ID3DB)
     {
         playback_context_set_database(tc.dirlevel, tc.selected_item);
-        playback_source_set(PLAYBACK_SOURCE_DATABASE);
         return;
     }
 #endif
@@ -834,13 +867,11 @@ static void tree_set_playback_source_for_wps(void)
         && (tc.currdir[6] == '/' || tc.currdir[6] == '\0'))
     {
         playback_context_set_filesystem(GO_TO_MUSICLIB, selected_path);
-        playback_source_set(PLAYBACK_SOURCE_MUSICLIB);
     }
     else
 #endif
     {
         playback_context_set_filesystem(GO_TO_FILEBROWSER, selected_path);
-        playback_source_set(PLAYBACK_SOURCE_FILEBROWSER);
     }
 }
 
@@ -937,7 +968,7 @@ static int dirbrowse(void)
                     case GO_TO_PLUGIN:
                         return exit_to_new_screen(GO_TO_PLUGIN);
                     case GO_TO_WPS:
-                        tree_set_playback_source_for_wps();
+                        tree_set_playback_context_for_wps();
                         return exit_to_new_screen(GO_TO_WPS);
 #if CONFIG_TUNER
                     case GO_TO_FM:
@@ -1140,7 +1171,7 @@ static int dirbrowse(void)
                         break;
 
                     case ONPLAY_START_PLAY:
-                        tree_set_playback_source_for_wps();
+                        tree_set_playback_context_for_wps();
                         return exit_to_new_screen(GO_TO_WPS);
                         break;
 
@@ -1176,7 +1207,7 @@ static int dirbrowse(void)
         }
         if (start_wps)
         {
-            tree_set_playback_source_for_wps();
+            tree_set_playback_context_for_wps();
             return exit_to_new_screen(GO_TO_WPS);
         }
         if (button && !IS_SYSEVENT(button))

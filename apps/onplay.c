@@ -210,18 +210,73 @@ static int wps_view_cur_playlist(void)
     return 0;
 }
 
-static void playing_time(void)
+static const char *playing_time_path(void)
 {
     if (file_exists(PLUGIN_APPS_DIR "/playing_time.rock"))
-        plugin_load(PLUGIN_APPS_DIR "/playing_time.rock", NULL);
-    else
-        plugin_load(PLUGIN_DIR "/playing_time.rock", NULL);
+        return PLUGIN_APPS_DIR "/playing_time.rock";
+    if (file_exists(PLUGIN_DIR "/playing_time.rock"))
+        return PLUGIN_DIR "/playing_time.rock";
+    return NULL;
+}
+
+static int playing_time_item_cb(int action,
+                                const struct menu_item_ex *this_item,
+                                struct gui_synclist *this_list)
+{
+    (void)this_item;
+    (void)this_list;
+
+    if (action == ACTION_REQUEST_MENUITEM && playing_time_path() == NULL)
+        return ACTION_EXIT_MENUITEM;
+    return action;
+}
+
+static void playing_time(void)
+{
+    const char *plugin = playing_time_path();
+
+    if (plugin == NULL)
+    {
+        splash(HZ*2, ID2P(LANG_PLUGIN_ERROR));
+        return;
+    }
+
+    plugin_load(plugin, NULL);
 }
 
 #ifdef HAVE_ALBUMART
+static const char *imageviewer_path(void)
+{
+    if (file_exists(VIEWERS_DIR "/imageviewer.rock"))
+        return VIEWERS_DIR "/imageviewer.rock";
+    if (file_exists(PLUGIN_DIR "/imageviewer.rock"))
+        return PLUGIN_DIR "/imageviewer.rock";
+    return NULL;
+}
+
 static void view_album_art(void)
 {
-    plugin_load(VIEWERS_DIR"/imageviewer.rock", NULL);
+    const char *plugin = imageviewer_path();
+
+    if (plugin == NULL)
+    {
+        splash(HZ*2, ID2P(LANG_PLUGIN_ERROR));
+        return;
+    }
+
+    plugin_load(plugin, NULL);
+}
+
+static int view_album_art_item_cb(int action,
+                                  const struct menu_item_ex *this_item,
+                                  struct gui_synclist *this_list)
+{
+    (void)this_item;
+    (void)this_list;
+
+    if (action == ACTION_REQUEST_MENUITEM && imageviewer_path() == NULL)
+        return ACTION_EXIT_MENUITEM;
+    return action;
 }
 #endif
 
@@ -234,7 +289,7 @@ MENUITEM_FUNCTION(playlist_save_item, 0, ID2P(LANG_SAVE_DYNAMIC_PLAYLIST),
 MENUITEM_FUNCTION(reshuffle_item, 0, ID2P(LANG_SHUFFLE_PLAYLIST),
                   shuffle_playlist, NULL, Icon_Playlist);
 MENUITEM_FUNCTION(playing_time_item, 0, ID2P(LANG_PLAYING_TIME),
-                  playing_time, NULL, Icon_Playlist);
+                  playing_time, playing_time_item_cb, Icon_Playlist);
 MAKE_ONPLAYMENU( wps_playlist_menu, ID2P(LANG_CURRENT_PLAYLIST),
                  NULL, Icon_Playlist,
                  &wps_view_cur_playlist_item, &playlist_save_item,
@@ -765,7 +820,7 @@ static int pitch_callback(int action,
 
 #ifdef HAVE_ALBUMART
 MENUITEM_FUNCTION(view_album_art_item, 0, ID2P(LANG_VIEW_ALBUMART),
-                  view_album_art, NULL, Icon_NOICON);
+                  view_album_art, view_album_art_item_cb, Icon_NOICON);
 #endif
 
 static int clipboard_delete_selected_fileobject(void)

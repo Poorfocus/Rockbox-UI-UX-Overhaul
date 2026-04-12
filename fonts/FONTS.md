@@ -9,15 +9,17 @@ The Inter-based `.fnt` files (`13-Inter-SemiBold.fnt`, `16-Inter-SemiBold.fnt`,
 [Inter typeface](https://rsms.me/inter/) by Rasmus Andersson, released under the
 **SIL Open Font License 1.1**. These files are included in the repository.
 
-## SF Pro / SF Compact (not included — must generate locally)
+## SF Pro / SF Compact (included here with notice; can be regenerated locally)
 
 The Apple San Francisco typeface files (`SF Pro Text`, `SF Pro Display`,
-`SF Compact Text`, `SF Compact Display`) are **not** included in this repository.
-Apple's fonts are proprietary and may only be used in development on Apple platforms.
-Redistributing derived bitmap fonts from them is not permitted.
+`SF Compact Text`, `SF Compact Display`) are proprietary Apple fonts.
+This repository currently includes Apple-derived bitmap `.fnt` files for the
+Apple2026 research branch under the notice in [`NOTICE`](../NOTICE).
+They are not GPL/OFL assets and should be treated as educational / research
+artifacts only.
 
-The following `.fnt` files must be generated locally from fonts you have legally
-obtained from Apple (e.g. from Xcode or the Apple Developer site):
+If you need a clean local rebuild from fonts you obtained directly from Apple
+(for example from Xcode or the Apple Developer site), regenerate these files:
 
 ```
 13-SFCompactText-Regular.fnt
@@ -45,14 +47,13 @@ obtained from Apple (e.g. from Xcode or the Apple Developer site):
 
 1. Obtain the Apple SF Pro and SF Compact `.otf` files (available from
    [developer.apple.com/fonts](https://developer.apple.com/fonts/)).
-2. Place the OTF files in the `Apple Fonts/` directory at the repo root
-   (this directory is gitignored).
+2. Place the OTF files in the `Apple Fonts/` directory at the repo root.
 3. Run the font conversion tool:
    ```
    python tools/apple2026_rebuild_fonts_from_otf.py
    ```
-4. The generated `.fnt` files will be placed in `fonts/`. They are gitignored
-   and will not be included in any commit.
+4. The generated `.fnt` files will be written into `fonts/`, replacing the
+   current Apple2026 bitmaps in your local tree.
 
 ### Using an alternative open typeface
 

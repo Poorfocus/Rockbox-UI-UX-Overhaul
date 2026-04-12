@@ -1,5 +1,7 @@
 #!/bin/sh
+set -e
 cd "$(dirname "$0")"
+APPLE2026_THEME_VERSION="Update3"
 
 detect_jobs() {
     if [ -n "${JOBS:-}" ]; then
@@ -33,6 +35,23 @@ require_tools() {
 
     if [ "$missing" -ne 0 ]; then
         exit 2
+    fi
+}
+
+stage_repo_fonts_for_zip() {
+    local tempdir="$1"
+    local repofonts="../fonts"
+    local staged=0
+
+    mkdir -p "$tempdir/.rockbox/fonts"
+    for src in "$repofonts"/*.fnt; do
+        [ -f "$src" ] || continue
+        cp "$src" "$tempdir/.rockbox/fonts/"
+        staged=$((staged + 1))
+    done
+
+    if [ "$staged" -gt 0 ]; then
+        echo "RockPod: staged $staged repo font(s) for rockbox.zip."
     fi
 }
 
@@ -150,6 +169,7 @@ fi
 
 prepare_core_generated_headers
 JOBS="$(detect_jobs)"
+rm -f rockbox.zip
 make -j"$JOBS"
 make zip
 
@@ -171,7 +191,7 @@ line selector end color: E5E5EA
 line selector text color: 000000
 list separator height: 1
 list separator color: C6C6C8
-font: /.rockbox/fonts/20-SFProText-Regular.fnt
+font: /.rockbox/fonts/18-SFProText-Regular.fnt
 statusbar: top
 iconset: /.rockbox/icons/Apple2026Icons.bmp
 viewers iconset: -
@@ -180,14 +200,20 @@ ui viewport: -
 scrollbar: right
 scrollbar width: 2
 disable main menu scrolling: on
+dynamic colors: off
+backlight on button hold: normal
 qs top: brightness
 qs left: shuffle
 qs right: repeat
 qs bottom: sleeptimer duration
 ROCKPOD_CFG
+    printf '%s\n' "$APPLE2026_THEME_VERSION" > "$TMPDIR_CFG/.rockbox/.apple2026_version"
+    stage_repo_fonts_for_zip "$TMPDIR_CFG"
     OLDPWD="$(pwd)"
     cd "$TMPDIR_CFG" || exit 1
     zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/config.cfg"
+    zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/.apple2026_version"
+    zip -q -u -r "$OLDPWD/rockbox.zip" ".rockbox/fonts"
     cd "$OLDPWD" || exit 1
     rm -rf "$TMPDIR_CFG"
     echo "RockPod: config.cfg injected."
@@ -196,3 +222,7 @@ else
 fi
 echo "RockPod: auditing Apple2026 source vs rockbox.zip..."
 python3 ../tools/apple2026_skin_audit.py --zip-artifact rockbox.zip
+echo "RockPod: auditing packaged hardware plugins..."
+python3 ../tools/verify_plugin_package.py \
+    --build-dir "$(pwd)" \
+    --zip-artifact rockbox.zip

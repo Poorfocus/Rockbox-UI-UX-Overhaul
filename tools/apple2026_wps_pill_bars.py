@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Generate pill-style progress/volume bar BMPs for Apple2026 WPS (Apple Music-like track + fill).
 
-Also generates a subtle album-art drop shadow (backdrop layer, drawn under %Cl/%Cd).
-
 Rockbox draws the backdrop full-width, then clips the bar image from the left by progress.
 Both images share geometry: full-width pill (rounded caps). No slider/knob image.
 
@@ -20,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "wps" / "Apple2026"
@@ -29,26 +27,6 @@ OUT = ROOT / "wps" / "Apple2026"
 CLR_UNPLAYED = (199, 199, 204)  # C7C7CC -- unplayed track / bar background
 CLR_PLAYED   = (60,  60,  67)   # 3C3C43 -- played fill / active bar fill
 CLR_SHELL    = (255, 255, 255)  # FFFFFF -- canvas bg matches WPS backdrop
-
-# Album art region bg for shadow composite.
-CLR_AA_BG = (234, 234, 234)  # EAEAEA
-
-
-def _album_drop_shadow(path, size=188, art=180):
-    """Very soft drop shadow -- Interpod / Apple Music card depth on a flat shell."""
-    bg = Image.new("RGB", (size, size), CLR_AA_BG)
-    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    ox, oy = 3, 4
-    draw.rounded_rectangle(
-        (ox, oy, ox + art - 1, oy + art - 1),
-        radius=4,
-        fill=(58, 58, 62, 22),
-    )
-    layer = layer.filter(ImageFilter.GaussianBlur(radius=7))
-    out = Image.alpha_composite(bg.convert("RGBA"), layer).convert("RGB")
-    out.save(path)
-
 
 def _pill_rgb(width, height, fill):
     """Render a full-width pill on a CLR_SHELL canvas.
@@ -79,9 +57,7 @@ def main():
     _pill_rgb(vw, vh, CLR_UNPLAYED).save(OUT / "vb_backdrop.bmp")
     _pill_rgb(vw, vh, CLR_PLAYED).save(OUT / "vb.bmp")
 
-    _album_drop_shadow(OUT / "albumShadow.bmp")
-
-    print("Wrote pill bar + album shadow BMPs to {}".format(OUT))
+    print("Wrote pill bar BMPs to {}".format(OUT))
 
 
 if __name__ == "__main__":

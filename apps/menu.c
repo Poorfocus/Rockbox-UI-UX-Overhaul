@@ -198,6 +198,21 @@ static enum themable_icons  menu_get_icon(int selected_item, void * data)
     return menu_icon;
 }
 
+static bool menu_item_is_navigable(int selected_item, void * data)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+    int type = (menu->flags&MENU_TYPE_MASK);
+
+    if (type == MT_RETURN_ID)
+        return false;
+
+    selected_item = get_menu_selection(selected_item, menu);
+    if (type == MT_MENU)
+        menu = menu->submenus[selected_item];
+
+    return (menu->flags&MENU_TYPE_MASK) == MT_MENU;
+}
+
 static char* init_title(const struct menu_item_ex *menu, int *icon,
                         char* buf, size_t buf_sz)
 {
@@ -269,6 +284,7 @@ static int init_menu_lists(const struct menu_item_ex *menu,
     title = init_title(menu, &icon, buf, buf_sz);
     gui_synclist_set_title(lists, title, icon);
     gui_synclist_set_icon_callback(lists, global_settings.show_icons?menu_get_icon:NULL);
+    gui_synclist_set_navigable_callback(lists, menu_item_is_navigable);
     if(global_settings.talk_menu)
         gui_synclist_set_voice_callback(lists, talk_menu_item);
     gui_synclist_set_nb_items(lists,current_subitems_count);
@@ -387,11 +403,6 @@ void do_setting_from_menu(const struct menu_item_ex *temp,
 int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
             struct viewport parent[NB_SCREENS], bool hide_theme)
 {
-#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-    /* Apple2026: all system menus use standard typography tier.
-     * Prevents dense-font leakage when backing out of a dense tracklist screen. */
-    rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
-#endif
     int selected = start_selected? *start_selected : 0;
     int ret = 0;
     int action;

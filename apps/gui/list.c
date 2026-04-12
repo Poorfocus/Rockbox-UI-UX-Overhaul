@@ -43,7 +43,6 @@
 #include "skin_engine/skin_albumart_color.h"
 #include "apple2026_shell.h"
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-#include "root_menu.h"
 /* Dense list font (16pt Regular) — loaded once on first use.
  * Matches Cover Flow tracklist and album-level file browser density. */
 int apple2026_dense_font_id = -1;
@@ -155,7 +154,7 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
 #if ROCKPOD_APPLE2026_IPOD
     {
         int min_row;
-        if (rockpod_list_font_tier == ROCKPOD_LIST_FONT_DENSE)
+        if (list->font_tier == ROCKPOD_LIST_FONT_DENSE)
         {
             apple2026_ensure_dense_font();
             if (apple2026_dense_font_id >= 0)
@@ -173,17 +172,6 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
         }
         if (list->line_height[screen] < min_row)
             list->line_height[screen] = min_row;
-
-        /* Dynamic fill: distribute leftover pixels so rows fill the
-         * viewport completely, eliminating the dead gap at the bottom.
-         * Same visible item count, more generous per-row padding. */
-        int avail = vp->height;
-        if (avail > 0 && list->line_height[screen] > 0)
-        {
-            int n = avail / list->line_height[screen];
-            if (n > 0)
-                list->line_height[screen] = avail / n;
-        }
     }
 #endif
 }
@@ -219,11 +207,13 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     )
 {
     gui_list->callback_get_item_icon = NULL;
+    gui_list->callback_is_navigable = NULL;
     gui_list->callback_get_item_name = callback_get_item_name;
     gui_list->callback_speak_item = NULL;
     gui_list->callback_draw_item = NULL;
     gui_list->nb_items = 0;
     gui_list->selected_item = 0;
+    gui_list->font_tier = ROCKPOD_LIST_FONT_NORMAL;
     gui_synclist_init_display_settings(gui_list);
 #ifdef HAVE_TOUCHSCREEN
     gui_list->y_pos = 0;
@@ -531,10 +521,22 @@ void gui_synclist_set_icon_callback(struct gui_synclist * lists,
     lists->callback_get_item_icon = icon_callback;
 }
 
+void gui_synclist_set_navigable_callback(struct gui_synclist * lists,
+                                         list_is_navigable navigable_callback)
+{
+    lists->callback_is_navigable = navigable_callback;
+}
+
 void gui_synclist_set_voice_callback(struct gui_synclist * lists,
                                      list_speak_item voice_callback)
 {
     lists->callback_speak_item = voice_callback;
+}
+
+void gui_synclist_set_font_tier(struct gui_synclist * lists,
+                                rockpod_list_font_tier_t tier)
+{
+    lists->font_tier = tier;
 }
 
 void gui_synclist_set_viewport_defaults(struct viewport *vp,

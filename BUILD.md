@@ -253,30 +253,37 @@ Simulator:
 
 ## Release packaging (GitHub)
 
-After hardware zips exist:
+After fresh hardware zips exist from the current branch:
 
 ```bash
-# 1. Build hardware release zips
-./build-hw.sh          # 6G
-./build-hw.sh 5g       # 5G
+# 1. Build both hardware targets
+./build-hw.sh          # iPod Classic 6G/7G
+./build-hw.sh 5g       # iPod Video 5G/5.5G
 
-# 2. Commit, tag, push
-git add <files>
-git commit -m "vX.Y: description"
+# 2. Verify the exact zips you plan to publish
+python tools/apple2026_skin_audit.py --zip build-hw-ipod6g/rockbox.zip
+python tools/apple2026_skin_audit.py --zip build-hw-ipodvideo/rockbox.zip
+
+# 3. Tag and push to the public Poorfocus fork
 git tag vX.Y
-git push origin master
-git push origin vX.Y
+git push public HEAD
+git push public vX.Y
+# If your fork remote has a different name, substitute it here.
 
-# 3. Create GitHub release with both zips
+# 4. Create the GitHub release from the fresh build outputs only
 gh release create vX.Y \
     build-hw-ipod6g/rockbox.zip#rockbox-ipod6g.zip \
     build-hw-ipodvideo/rockbox.zip#rockbox-ipodvideo-5g.zip \
-    --repo nuxcodes/rockbox -t "vX.Y" \
+    --repo Poorfocus/Rockbox-UI-UX-Overhaul -t "vX.Y" \
     -F release-notes.md
 # Add -p for prerelease/alpha/beta tags
 ```
 
-Releases: `https://github.com/nuxcodes/rockpod/releases`.
+Never publish from stale extracted convenience folders such as
+`build-hw-*/rockbox_*`; the source-of-truth release artifacts are the freshly
+generated `build-hw-*/rockbox.zip` files above.
+
+Releases: `https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul/releases`.
 
 On Windows you can produce the same `rockbox.zip` files via `.\build-hw.ps1` then attach artifacts manually if `gh` is not used.
 

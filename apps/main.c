@@ -236,6 +236,58 @@ int main(void)
     root_menu();
 }
 
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#define APPLE2026_THEME_VERSION "Update3"
+#define APPLE2026_VERSION_FILE ROCKBOX_DIR "/.apple2026_version"
+
+static bool apple2026_theme_selected(void) INIT_ATTR;
+static bool apple2026_theme_selected(void)
+{
+    return !strcmp(global_settings.wps_file, ROCKBOX_DIR "/wps/Apple2026.wps")
+        || !strcmp(global_settings.sbs_file, ROCKBOX_DIR "/wps/Apple2026.sbs");
+}
+
+static bool apple2026_version_stamp_matches(void) INIT_ATTR;
+static bool apple2026_version_stamp_matches(void)
+{
+    char line[32];
+    int fd = open_utf8(APPLE2026_VERSION_FILE, O_RDONLY);
+
+    if (fd < 0)
+        return false;
+
+    bool matches = read_line(fd, line, sizeof(line)) > 0
+        && !strcmp(line, APPLE2026_THEME_VERSION);
+    close(fd);
+    return matches;
+}
+
+static void apple2026_write_version_stamp(void) INIT_ATTR;
+static void apple2026_write_version_stamp(void)
+{
+    int fd = open(APPLE2026_VERSION_FILE, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+
+    if (fd >= 0)
+    {
+        fdprintf(fd, "%s\n", APPLE2026_THEME_VERSION);
+        close(fd);
+    }
+}
+
+static void apple2026_maybe_self_heal_theme_state(void) INIT_ATTR;
+static void apple2026_maybe_self_heal_theme_state(void)
+{
+    if (!apple2026_theme_selected())
+        return;
+
+    if (apple2026_version_stamp_matches())
+        return;
+
+    if (settings_load_config(THEME_DIR "/Apple2026.cfg", true))
+        apple2026_write_version_stamp();
+}
+#endif
+
 /* The disk isn't ready at boot, rblogo is stored in bin and erased after boot */
 int show_logo_boot( void ) INIT_ATTR;
 int show_logo_boot( void )
@@ -453,6 +505,9 @@ static void init(void)
     audio_init();
     talk_announce_voice_invalid(); /* notify user w/ voice prompt if voice file invalid */
     settings_apply_skins();
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    apple2026_maybe_self_heal_theme_state();
+#endif
 
 /* do USB last so prompt (if enabled) can work correctly if USB was inserted with device off,
  * also doesn't hurt that it will display the nice pretty backdrop this way too. */
@@ -794,6 +849,9 @@ static void init(void)
     CHART("<settings_apply_skins");
     settings_apply_skins();
     CHART(">settings_apply_skins");
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    apple2026_maybe_self_heal_theme_state();
+#endif
 }
 
 #ifdef CPU_PP

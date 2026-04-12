@@ -98,12 +98,21 @@ static int previous_music = GO_TO_WPS;
  * menu (the "Now Playing" item or PLAY-from-root) rather than from a content
  * chain (Cover Flow play, Music browse-and-play, etc.).  Checked by
  * wps_handle_browse_parent() so back-from-WPS returns to Main Menu instead
- * of re-attaching the user to a stale playback_source chain. */
+ * of re-attaching the user to a stale browse chain. */
 bool wps_entered_from_root = false;
 
-/* Apple2026: two-tier list font — NORMAL (18pt) for navigational menus,
- * DENSE (16pt) for track/song content lists.  Default to normal. */
-rockpod_list_font_tier_t rockpod_list_font_tier = ROCKPOD_LIST_FONT_NORMAL;
+#ifdef HAVE_TAGCACHE
+/* Apple2026: keep WPS -> Cover Flow return-to-tracklist as an explicit one-shot
+ * launch mode so a later direct Cover Flow launch still lands on the idle grid.
+ */
+static bool pictureflow_return_to_tracklist_once = false;
+#define PICTUREFLOW_TRACKLIST_RETURN_TOKEN "apple2026:return-tracklist"
+
+void pictureflow_request_tracklist_return(void)
+{
+    pictureflow_return_to_tracklist_once = true;
+}
+#endif
 
 #if (CONFIG_TUNER)
 static void rootmenu_start_playback_callback(unsigned short id, void *param)
@@ -565,7 +574,15 @@ static int load_bmarks(void* param)
 static int pictureflow_scrn(void* param)
 {
     (void)param;
-    int ret = filetype_load_plugin("pictureflow", NULL);
+    const void *plugin_param = NULL;
+
+    if (pictureflow_return_to_tracklist_once)
+    {
+        plugin_param = PICTUREFLOW_TRACKLIST_RETURN_TOKEN;
+        pictureflow_return_to_tracklist_once = false;
+    }
+
+    int ret = filetype_load_plugin("pictureflow", plugin_param);
     switch (ret)
     {
         case PLUGIN_GOTO_WPS:
@@ -1277,11 +1294,6 @@ void root_menu(void)
                 break;
             }
             default:
-#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-                /* Playlist viewer shows individual tracks — use dense font. */
-                if (next_screen == GO_TO_PLAYLIST_VIEWER)
-                    rockpod_list_font_tier = ROCKPOD_LIST_FONT_DENSE;
-#endif
                 goto load_next_screen;
                 break;
         } /* switch() */
@@ -1290,11 +1302,6 @@ load_next_screen: /* load_screen is inlined */
         next_screen = load_screen(next_screen);
     }
 
-}
-
-void playback_source_set(enum playback_source src)
-{
-    global_status.playback_source = (signed char)src;
 }
 
 void playback_context_clear(void)

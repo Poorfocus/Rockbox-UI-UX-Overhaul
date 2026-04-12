@@ -45,7 +45,6 @@
 #include "../skin_engine/skin_albumart_color.h"
 #include "apple2026_shell.h"
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-#include "root_menu.h"
 /* Reference to the dense font loaded in apps/gui/list.c */
 extern int apple2026_dense_font_id;
 extern void apple2026_ensure_dense_font(void);
@@ -117,8 +116,15 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
     bool is_title = list_info->is_title;
     bool show_cursor = list_info->show_cursor;
     bool have_icons = list_info->have_icons;
+    bool show_chevron = false;
     struct line_desc *linedes = list_info->linedes;
     const char *dsp_text = list_info->dsp_text;
+
+    if (!is_title && list_info->list->callback_is_navigable)
+    {
+        show_chevron = list_info->list->callback_is_navigable(
+            list_info->line, list_info->list->data);
+    }
 
     if (is_title)
     {
@@ -180,6 +186,7 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
         /* Apple2026 disclosure chevron: anti-aliased ">" at right margin.
          * 6x12px drawn with per-pixel AA against white background.
          * Main stroke: C7C7CC. AA edges: E3E3E5 (50% blend towards white). */
+        if (show_chevron)
         {
             int cw = 6, ch = 12;
             int cx = vp_w - cw - 10;
@@ -298,7 +305,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
      * We set the viewport font to the dense font slot so all text in this
      * draw pass uses it; restore FONT_UI after drawing is complete. */
     int apple2026_saved_font = -1;
-    if (rockpod_list_font_tier == ROCKPOD_LIST_FONT_DENSE)
+    if (list->font_tier == ROCKPOD_LIST_FONT_DENSE)
     {
         apple2026_ensure_dense_font();
         if (apple2026_dense_font_id >= 0)

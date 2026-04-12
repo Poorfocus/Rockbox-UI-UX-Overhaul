@@ -695,6 +695,7 @@ static bool wps_handle_browse_parent(long *out_screen, bool *theme_enabled,
         return false;
 #ifdef HAVE_TAGCACHE
     case PLAYBACK_CONTEXT_PICTUREFLOW_TRACKLIST:
+        pictureflow_request_tracklist_return();
         gwps_leave_wps(true);
         *out_screen = GO_TO_PICTUREFLOW;
         return false;
@@ -718,40 +719,6 @@ static bool wps_handle_browse_parent(long *out_screen, bool *theme_enabled,
         *out_screen = GO_TO_PLAYLIST_VIEWER;
         return false;
     case PLAYBACK_CONTEXT_NONE:
-    default:
-        break;
-    }
-
-    switch ((enum playback_source)global_status.playback_source)
-    {
-    case PLAYBACK_SOURCE_NONE:
-        break;
-#ifdef HAVE_TAGCACHE
-    case PLAYBACK_SOURCE_PICTUREFLOW:
-        gwps_leave_wps(true);
-        *out_screen = GO_TO_PICTUREFLOW;
-        return false;
-    case PLAYBACK_SOURCE_DATABASE:
-        gwps_leave_wps(true);
-        *out_screen = GO_TO_DBBROWSER;
-        return false;
-#endif
-    case PLAYBACK_SOURCE_MUSICLIB:
-        gwps_leave_wps(true);
-        *out_screen = GO_TO_MUSICLIB;
-        return false;
-    case PLAYBACK_SOURCE_FILEBROWSER:
-        gwps_leave_wps(true);
-        *out_screen = GO_TO_PREVIOUS_BROWSER;
-        return false;
-    case PLAYBACK_SOURCE_PLAYLIST_BROWSER:
-        gwps_leave_wps(true);
-        *out_screen = GO_TO_PLAYLISTS_SCREEN;
-        return false;
-    case PLAYBACK_SOURCE_PLAYLIST_VIEWER:
-        gwps_leave_wps(true);
-        *out_screen = GO_TO_PLAYLIST_VIEWER;
-        return false;
     default:
         break;
     }

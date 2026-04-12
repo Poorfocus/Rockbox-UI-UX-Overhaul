@@ -6,7 +6,6 @@ Assets:
     Wallpaper.bmp         320x240 solid white — matches Apple2026 shell background
     LockNotification.bmp  288x70  rounded-rect notification card (light, F2F2F7 fill)
     LockNotifPlay.bmp     12x14   play/pause indicator (2 frames, dark strokes)
-    LockBatWarn.bmp       16x16   low-battery warning icon (dark strokes)
 
 All BMPs use Rockbox 24-bit RGB with magenta (FF00FF) transparency key.
 """
@@ -75,18 +74,6 @@ def _lock_notif_play(path: Path):
     print(f"  {path.name}  {fw * 2}x{fh}  (2 frames)")
 
 
-def _lock_bat_warn(path: Path):
-    """16x16 low-battery warning icon -- exclamation in circle (dark strokes)."""
-    s = 16
-    img = Image.new("RGB", (s, s), TRANSPARENT_KEY)
-    draw = ImageDraw.Draw(img)
-    draw.ellipse([1, 1, s - 2, s - 2], outline=CLR_ACCENT, width=1)
-    draw.rectangle([7, 4, 8, 9], fill=CLR_ACCENT)
-    draw.rectangle([7, 11, 8, 12], fill=CLR_ACCENT)
-    img.save(path)
-    print(f"  {path.name}  {s}x{s}")
-
-
 def main():
     WPS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -94,7 +81,6 @@ def main():
     _wallpaper(WPS_DIR / "Wallpaper.bmp")
     _notification_card(WPS_DIR / "LockNotification.bmp")
     _lock_notif_play(WPS_DIR / "LockNotifPlay.bmp")
-    _lock_bat_warn(WPS_DIR / "LockBatWarn.bmp")
 
     print("Done.")
 

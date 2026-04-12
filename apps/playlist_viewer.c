@@ -885,8 +885,11 @@ static int playlist_callback_voice(int selected_item, void *data)
 static void update_gui(struct gui_synclist * playlist_lists, bool init)
 {
     if (init)
+    {
         gui_synclist_init(playlist_lists, playlist_callback_name,
                           &viewer, false, 1, NULL);
+        gui_synclist_set_font_tier(playlist_lists, ROCKPOD_LIST_FONT_DENSE);
+    }
     gui_synclist_set_nb_items(playlist_lists, viewer.num_tracks);
     gui_synclist_set_voice_callback(playlist_lists,
                                     global_settings.talk_file?
@@ -1046,7 +1049,6 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                     /* play new track */
                     playlist_start(current_track->index, 0, 0);
                     playback_context_set_playlist(true);
-                    playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
                     update_playlist(false);
                 }
                 else if (warn_on_pl_erase())
@@ -1063,7 +1065,6 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                         if (global_settings.playlist_shuffle)
                             start_index = playlist_shuffle(current_tick, start_index);
                         playlist_start(start_index, 0, 0);
-                        playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
 
                         if (viewer.initial_selection)
                             *(viewer.initial_selection) = viewer.selected_track;
@@ -1290,6 +1291,7 @@ bool search_playlist(void)
     struct playlist_search_data s_data = {.track = &track, .found_indicies = found_indicies};
     gui_synclist_init(&playlist_lists, playlist_search_callback_name,
                       &s_data, false, 1, NULL);
+    gui_synclist_set_font_tier(&playlist_lists, ROCKPOD_LIST_FONT_DENSE);
     gui_synclist_set_title(&playlist_lists, str(LANG_SEARCH_RESULTS), NOICON);
     if(global_settings.talk_file)
         gui_synclist_set_voice_callback(&playlist_lists,
@@ -1314,7 +1316,6 @@ bool search_playlist(void)
                 int sel = gui_synclist_get_sel_pos(&playlist_lists);
                 playlist_start(found_indicies[sel], 0, 0);
                 playback_context_set_playlist(viewer.playlist == NULL);
-                playback_source_set(PLAYBACK_SOURCE_PLAYLIST_VIEWER);
                 exit = 1;
             }
                 break;

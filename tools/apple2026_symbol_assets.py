@@ -203,9 +203,6 @@ def generate_wps_symbols() -> None:
     _render_symbol_tile("repeat", 15, 11, padding=1, scale=0.90).save(
         WPS_ASSET_DIR / "repeatAB.bmp", "BMP"
     )
-    _render_symbol_tile("shuffle", 17, 11, padding=1, scale=0.90).save(
-        WPS_ASSET_DIR / "shuffle.bmp", "BMP"
-    )
     _render_symbol_tile("waveform", 66, 11, padding=2, scale=0.88, color=(110, 110, 115, 255)).save(
         WPS_ASSET_DIR / "losslessIndicator.bmp", "BMP"
     )
@@ -274,13 +271,6 @@ def generate_shell_bitmaps() -> None:
     draw.rounded_rectangle((84, 74, 236, 166), radius=12, outline=(214, 214, 219), width=1)
     usb_bg.save(WPS_ASSET_DIR / "usbBackdrop.bmp", "BMP")
 
-    # Album framing card (used for album art fallback framing)
-    frame = Image.new("RGB", (130, 130), (239, 239, 239))
-    draw = ImageDraw.Draw(frame)
-    draw.rounded_rectangle((0, 0, 129, 129), radius=8, outline=(214, 214, 219), width=1)
-    draw.rounded_rectangle((2, 2, 127, 127), radius=7, outline=(231, 231, 235), width=1)
-    frame.save(WPS_ASSET_DIR / "albumFramed.bmp", "BMP")
-
     # Album placeholder card with centered music-note symbol
     placeholder = Image.new("RGBA", (130, 130), (239, 239, 239, 255))
     draw = ImageDraw.Draw(placeholder)
@@ -314,14 +304,12 @@ def main() -> None:
     print(f"  {WPS_ASSET_DIR / 'repeatOne.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'repeatShuffle.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'repeatAB.bmp'}")
-    print(f"  {WPS_ASSET_DIR / 'shuffle.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'losslessIndicator.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'speaker_loud.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'speaker_mute.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'speaker_too_loud.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'busyIndicator.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'batteryStatus.bmp'}")
-    print(f"  {WPS_ASSET_DIR / 'albumFramed.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'albumPlaceholder.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'wpsBackdrop.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'usbBackdrop.bmp'}")

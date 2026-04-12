@@ -77,6 +77,8 @@ my $remotelistviewport;
 my $scrollbar;
 my $scrollbarwidth;
 my $disablemainmenuscrolling;
+my $dynamiccolors;
+my $backlightonbuttonhold;
 my $qstop;
 my $qsleft;
 my $qsright;
@@ -351,6 +353,10 @@ MOO
     push @out, "scrollbar width: $scrollbarwidth\n" if (defined($scrollbarwidth));
     push @out, "disable main menu scrolling: $disablemainmenuscrolling\n"
         if (defined($disablemainmenuscrolling));
+    push @out, "dynamic colors: $dynamiccolors\n"
+        if (defined($dynamiccolors));
+    push @out, "backlight on button hold: $backlightonbuttonhold\n"
+        if (defined($backlightonbuttonhold));
     push @out, "qs top: $qstop\n"               if (defined($qstop));
     push @out, "qs left: $qsleft\n"             if (defined($qsleft));
     push @out, "qs right: $qsright\n"           if (defined($qsright));
@@ -507,6 +513,8 @@ while(<WPS>) {
         undef $scrollbar;
         undef $scrollbarwidth;
         undef $disablemainmenuscrolling;
+        undef $dynamiccolors;
+        undef $backlightonbuttonhold;
         undef $qstop;
         undef $qsleft;
         undef $qsright;
@@ -608,6 +616,12 @@ while(<WPS>) {
             }
             elsif($l =~ /^disable main menu scrolling: *(.*)/i) {
                 $disablemainmenuscrolling = $1;
+            }
+            elsif($l =~ /^dynamic colors: *(.*)/i) {
+                $dynamiccolors = $1;
+            }
+            elsif($l =~ /^backlight on button hold: *(.*)/i) {
+                $backlightonbuttonhold = $1;
             }
             elsif($l =~ /^qs top: *(.*)/i) {
                 $qstop = $1;

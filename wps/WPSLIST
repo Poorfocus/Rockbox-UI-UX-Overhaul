@@ -76,6 +76,8 @@ scrollbar width: 2
 list separator height: 1
 list separator color: C6C6C8
 disable main menu scrolling: on
+dynamic colors: off
+backlight on button hold: normal
 qs top: brightness
 qs left: shuffle
 qs right: repeat

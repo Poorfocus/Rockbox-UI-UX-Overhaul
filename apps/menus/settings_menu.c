@@ -56,6 +56,7 @@
 #include "usb-ibasso.h"
 #endif
 #include "plugin.h"
+#include "file.h"
 #include "onplay.h"
 #include "misc.h"
 
@@ -121,6 +122,27 @@ int mask = global_settings.bt_selective_softlock_actions_mask;
 /*    TAGCACHE MENU                */
 #ifdef HAVE_TAGCACHE
 
+static const char *db_folder_select_path(void)
+{
+    if (file_exists(VIEWERS_DIR "/db_folder_select.rock"))
+        return VIEWERS_DIR "/db_folder_select.rock";
+    if (file_exists(PLUGIN_DIR "/db_folder_select.rock"))
+        return PLUGIN_DIR "/db_folder_select.rock";
+    return NULL;
+}
+
+static int db_folder_select_menu_cb(int action,
+                                    const struct menu_item_ex *this_item,
+                                    struct gui_synclist *this_list)
+{
+    (void)this_item;
+    (void)this_list;
+
+    if (action == ACTION_REQUEST_MENUITEM && db_folder_select_path() == NULL)
+        return ACTION_EXIT_MENUITEM;
+    return action;
+}
+
 static void tagcache_rebuild_with_splash(void)
 {
     tagcache_rebuild();
@@ -135,7 +157,15 @@ static void tagcache_update_with_splash(void)
 
 static int dirs_to_scan(void)
 {
-    if(plugin_load(VIEWERS_DIR"/db_folder_select.rock", NULL) > PLUGIN_OK)
+    const char *plugin = db_folder_select_path();
+
+    if (plugin == NULL)
+    {
+        splash(HZ*2, ID2P(LANG_PLUGIN_ERROR));
+        return 0;
+    }
+
+    if(plugin_load(plugin, NULL) > PLUGIN_OK)
     {
         static const char *lines[] = {ID2P(LANG_TAGCACHE_BUSY),
                                       ID2P(LANG_TAGCACHE_FORCE_UPDATE)};
@@ -165,7 +195,7 @@ MENUITEM_FUNCTION(tc_import, 0, ID2P(LANG_TAGCACHE_IMPORT),
                   tagtree_import,
                   NULL, Icon_NOICON);
 MENUITEM_FUNCTION(tc_paths, 0, ID2P(LANG_SELECT_DATABASE_DIRS),
-                  dirs_to_scan, NULL, Icon_NOICON);
+                  dirs_to_scan, db_folder_select_menu_cb, Icon_NOICON);
 
 MAKE_MENU(tagcache_menu, ID2P(LANG_TAGCACHE), 0, Icon_NOICON,
 #ifdef HAVE_TC_RAMCACHE
@@ -640,12 +670,25 @@ static int autoresume_nexttrack_callback(int action,
             oldval = global_settings.autoresume_automatic;
             break;
         case ACTION_EXIT_MENUITEM:
-            if (global_settings.autoresume_automatic == AUTORESUME_NEXTTRACK_CUSTOM
-                && plugin_load(VIEWERS_DIR"/db_folder_select.rock",
-                               str(LANG_AUTORESUME)) == PLUGIN_OK)
+        {
+            const char *plugin = db_folder_select_path();
+
+            if (global_settings.autoresume_automatic != AUTORESUME_NEXTTRACK_CUSTOM)
+                break;
+
+            if (plugin == NULL)
+            {
+                splash(HZ*2, ID2P(LANG_PLUGIN_ERROR));
+                global_settings.autoresume_automatic = oldval;
+                break;
+            }
+
+            if (plugin_load(plugin, str(LANG_AUTORESUME)) == PLUGIN_OK)
             {
                 global_settings.autoresume_automatic = oldval;
             }
+            break;
+        }
     }
     return action;
 }

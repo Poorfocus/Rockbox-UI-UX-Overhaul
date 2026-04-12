@@ -57,6 +57,7 @@ enum synclist_cursor
  * Note : we use the ICON type because the real type depends of the plateform
  */
 typedef enum themable_icons list_get_icon(int selected_item, void * data);
+typedef bool list_is_navigable(int selected_item, void * data);
 /*
  * Text callback
  *  - selected_item : an integer that tells the number of the item to display
@@ -108,6 +109,11 @@ typedef void list_draw_item(struct list_putlineinfo_t *list_info);
  * Returns an integer, 0 means success, ignored really...
  */
 typedef int list_speak_item(int selected_item, void * data);
+
+typedef enum {
+    ROCKPOD_LIST_FONT_NORMAL = 0,
+    ROCKPOD_LIST_FONT_DENSE  = 1,
+} rockpod_list_font_tier_t;
 #ifdef HAVE_LCD_COLOR
 /*
  * Color callback
@@ -165,6 +171,7 @@ struct gui_synclist
     long scheduled_talk_tick, last_talked_tick, dirty_tick;
 
     list_get_icon *callback_get_item_icon;
+    list_is_navigable *callback_is_navigable;
     list_get_name *callback_get_item_name;
     list_speak_item *callback_speak_item;
     list_draw_item *callback_draw_item;
@@ -182,6 +189,7 @@ struct gui_synclist
     struct list_selection_color *selection_color;
 #endif
     struct viewport *parent[NB_SCREENS];
+    rockpod_list_font_tier_t font_tier;
 
 #ifdef HAVE_TOUCHSCREEN
     int y_pos; /* absolute Y coordinate, used for smooth scrolling */
@@ -203,7 +211,11 @@ extern void gui_synclist_init(
     );
 extern void gui_synclist_set_nb_items(struct gui_synclist * lists, int nb_items);
 extern void gui_synclist_set_icon_callback(struct gui_synclist * lists, list_get_icon icon_callback);
+extern void gui_synclist_set_navigable_callback(struct gui_synclist * lists,
+                                                list_is_navigable navigable_callback);
 extern void gui_synclist_set_voice_callback(struct gui_synclist * lists, list_speak_item voice_callback);
+extern void gui_synclist_set_font_tier(struct gui_synclist * lists,
+                                       rockpod_list_font_tier_t tier);
 extern void gui_synclist_set_viewport_defaults(struct viewport *vp, enum screen_type screen);
 #ifdef HAVE_LCD_COLOR
 extern void gui_synclist_set_color_callback(struct gui_synclist * lists, list_get_color color_callback);

@@ -18,9 +18,9 @@
 
 ---
 
-Rockpod is a [Rockbox](https://www.rockbox.org) fork for iPod Classic (6th/7th gen, 2007–2014) and iPod Video (5th/5.5th gen, 2005–2006). It adds MFi digital audio output, a rewritten Cover Flow, dynamic album art colors, and SSD-aware power management.
+Rockpod is a [Rockbox](https://www.rockbox.org) fork for iPod Classic (6th/7th gen, 2007–2014) and iPod Video (5th/5.5th gen, 2005–2006). This branch adds MFi digital audio output, a rewritten Cover Flow, an Apple2026 UI layer, dynamic album art colors support, and SSD-aware power management.
 
-Rockpod supports both HDD and iFlash-modded units. Both iPod models share the same 320x240 display and get the same UI features — Cover Flow, dynamic colors, themes, and rendering improvements. Hardware-specific features like SSD power management and MFi digital audio are iPod Classic only for now. It's a drop-in replacement for the official Rockbox firmware, with no reformatting or data loss.
+Rockpod supports both HDD and iFlash-modded units. Both iPod models share the same 320x240 UI foundation, but this Apple2026 branch should still be treated as a beta / research build rather than a drop-in stable replacement. Cover Flow and the Apple2026 theme work on both models; dynamic colors remain available in the codebase but Apple2026 intentionally ships with them off by default to preserve the white shell. Hardware-specific features like SSD power management and MFi digital audio are iPod Classic only for now.
 
 ---
 
@@ -121,7 +121,7 @@ The UI automatically extracts dominant and accent colors from the currently play
 - **Full theme color coverage** — foreground, background, selector bar, selector text, selector gradient, and list separators all adapt
 - **Smooth transitions** — 500 ms fade between color palettes on track change
 - **Contrast enforcement** — accent colors are pushed brighter or darker if insufficient contrast against the dominant color
-- **On by default** — can be toggled off under Theme Settings
+- **Available but off by default in Apple2026** — can be enabled under Theme Settings for experimentation
 
 ---
 
@@ -217,7 +217,7 @@ The repo includes third-party themes under `themes/`:
 | ------------------------- | --------------------- | -------------------- |
 | **MFi digital audio**     | Yes                   | Planned              |
 | **Cover Flow**            | Yes                   | Yes                  |
-| **Dynamic Colors**        | Yes                   | Yes                  |
+| **Dynamic Colors**        | Available, off by default in Apple2026 | Available, off by default in Apple2026 |
 | **UI improvements**       | Yes                   | Yes                  |
 | **Themes**                | Yes (320x240)         | Yes (320x240)        |
 | **SSD power management**  | Yes                   | No                   |
@@ -228,7 +228,7 @@ The repo includes third-party themes under `themes/`:
 |                         | Stock Rockbox                           | Rockpod                                        |
 | ----------------------- | --------------------------------------- | ---------------------------------------------- |
 | **MFi digital audio**   | Not supported                           | DACs, speakers, docks — Classic only           |
-| **Dynamic colors**      | Not supported                           | Album art color extraction with smooth fades   |
+| **Dynamic colors**      | Not supported                           | Available; Apple2026 theme defaults it off     |
 | **Cover Flow**          | 3 slides, no status bar, 70-degree tilt | 7 slides, status bar, parallel projection      |
 | **SSD idle**            | Full power-down, ~530 ms wake           | Clock-gate, <5 ms wake — Classic only          |
 | **Codec power**         | Always on                               | Auto power-down on idle — Classic only         |
@@ -256,13 +256,13 @@ PictureFlow rebuilds its album art cache on first launch after upgrade. This is 
 
 **See [`BUILD.md`](BUILD.md)** for all platforms: Windows PowerShell (`build-hw.ps1`, `build-sim.ps1`, `rockpod.ps1`), Unix/macOS (`build-hw.sh`, `build-sim.sh`), incremental builds, outputs (`build-hw-<target>/rockbox.zip`, `build-sim/rockboxui.exe`), and toolchain notes (`tools/rockboxdev.sh`).
 
-**Fonts:** The Inter `.fnt` files are included. SF Pro fonts are included in this build for educational purposes. To regenerate them from your own Apple font files, run `python tools/apple2026_rebuild_fonts_from_otf.py`. See [`fonts/FONTS.md`](fonts/FONTS.md).
+**Fonts:** The Inter `.fnt` files are included. Apple-derived SF Pro / SF Compact bitmap fonts are also checked in for this research branch under the notice in [NOTICE](NOTICE). If you want to regenerate them locally from your own Apple font files instead, run `python tools/apple2026_rebuild_fonts_from_otf.py`. See [`fonts/FONTS.md`](fonts/FONTS.md).
 
 ---
 
 ## Roadmap
 
-**iPod Video 5G/5.5G MFi digital audio.** iPod Video builds are available with all UI features (Cover Flow, dynamic colors, themes). MFi digital audio has been ported to the PP5022/ARC USB controller but is untested on hardware. Alpha builds are available for testing.
+**iPod Video 5G/5.5G MFi digital audio.** iPod Video builds are available with the current Apple2026 UI branch work (Cover Flow, themes, rendering changes). Dynamic colors exist in the codebase but Apple2026 ships with them off by default. MFi digital audio has been ported to the PP5022/ARC USB controller but is untested on hardware. Alpha builds are available for testing.
 
 **Generic USB audio support via host mode.** The current support uses USB device mode — the accessory is the host and the iPod authenticates as an Apple audio source. This only works with iPod MFi accessories. The next step is USB host mode, where the iPod becomes the host and sends audio to any class-compliant UAC device — standard USB-C DAC dongles via a dock-to-OTG adapter. The S5L8702's DWC OTG controller supports host mode in hardware; the work is in the host stack and UAC class driver.
 

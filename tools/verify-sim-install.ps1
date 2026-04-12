@@ -31,6 +31,7 @@ $exePath = Join-Path $buildSimRoot "rockboxui.exe"
 
 $required = @(
     @{ Rel = "rockboxui.exe";                          Full = $exePath;                                  Note = "simulator binary" }
+    @{ Rel = ".apple2026_version";                    Full = Join-Path $SimRoot ".apple2026_version";   Note = "Apple2026 theme/version self-heal stamp" }
     @{ Rel = "themes\Apple2026.cfg";                   Full = Join-Path $SimRoot "themes\Apple2026.cfg"; Note = "Apple2026 theme cfg (wpsbuild)" }
     @{ Rel = "fonts\28-SFProDisplay-Bold.fnt";         Full = Join-Path $SimRoot "fonts\28-SFProDisplay-Bold.fnt";  Note = "SBS slot 2 - large title; MISSING = no Library heading" }
     @{ Rel = "fonts\16-SFProText-Semibold.fnt";        Full = Join-Path $SimRoot "fonts\16-SFProText-Semibold.fnt"; Note = "SBS slot 3 - header chrome + mini-player track" }
