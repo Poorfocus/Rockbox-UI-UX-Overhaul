@@ -15,6 +15,13 @@
 >
 > **Font notice:** Bitmap fonts derived from Apple SF Pro are included for
 > **educational and research purposes only**. See [NOTICE](NOTICE).
+## Support the project
+
+If you’ve been enjoying the build and want to help me keep working on it, you can support the project here:
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/YOURNAME)
+
+A few dollars for coffee genuinely helps me keep up with API costs, testing, and beta updates.
 
 ---
 
