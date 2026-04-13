@@ -9,7 +9,7 @@
   ## Support the project
 
 If you want to throw a few dollars toward coffee, it genuinely helps me keep working on this project and cover API costs for future beta updates:
-
+<p align="center">
 [![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/poorfocus)
 </p>
 
