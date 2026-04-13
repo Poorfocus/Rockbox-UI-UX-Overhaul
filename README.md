@@ -6,13 +6,17 @@
   <a href="https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul/releases/latest"><img src="https://img.shields.io/github/v/release/Poorfocus/Rockbox-UI-UX-Overhaul?style=flat-square&color=blue" alt="Latest Release"></a>
   <img src="https://img.shields.io/badge/license-GPLv2-green?style=flat-square" alt="GPLv2">
   <img src="https://img.shields.io/badge/educational%20use-font%20notice-orange?style=flat-square" alt="Educational Use">
-  ## Support the project
+## Support the project
 
-If you want to throw a few dollars toward coffee, it genuinely helps me keep working on this project and cover API costs for future beta updates:
 <p align="center">
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/poorfocus)
+  If you want to throw a few dollars toward coffee, it genuinely helps me keep working on this project and cover API costs for future beta updates.
 </p>
 
+<p align="center">
+  <a href="https://ko-fi.com/poorfocus">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi">
+  </a>
+</p>
 > **Attribution:** This project is a UI/UX research fork of
 > [Rockpod](https://github.com/nuxcodes/rockpod) by nuxcodes, which is itself
 > a fork of [Rockbox](https://www.rockbox.org). All upstream copyright notices
