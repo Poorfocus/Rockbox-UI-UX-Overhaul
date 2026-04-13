@@ -1029,6 +1029,14 @@ static int dirbrowse(void)
 #endif
                     if (ft_exit(&tc) == 3)
                         exit_func = true;
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                    if (!exit_func && tc.browse
+                        && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)
+                        && tc.currdir[0] == '/' && tc.currdir[1] == '\0')
+                    {
+                        return exit_to_new_screen(GO_TO_ROOT);
+                    }
+#endif
 
                 restore = do_restore_display;
                 break;
@@ -1223,6 +1231,13 @@ static int dirbrowse(void)
             lastsortcase != global_settings.sort_case)
         {
             if (reload_root) {
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                if (tc.browse
+                    && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB))
+                {
+                    return exit_to_new_screen(GO_TO_ROOT);
+                }
+#endif
                 strcpy(currdir, "/");
                 tc.dirlevel = 0;
 #ifdef HAVE_TAGCACHE
@@ -1258,6 +1273,13 @@ static int dirbrowse(void)
             reload_dir = false;
             if (currdir[1] && (numentries < 0))
             {   /* not in root and reload failed */
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                if (tc.browse
+                    && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB))
+                {
+                    return exit_to_new_screen(GO_TO_ROOT);
+                }
+#endif
                 reload_root = true; /* try root */
                 goto check_rescan;
             }

@@ -83,7 +83,7 @@
 %?if(%cs, =, 21)<%xd(M)>
 
 # Homescreen lockscreen — covers root menu when hold is engaged
-%?if(%cs, =, 1)<%?mh<%Vd(home_lock_wallpaper)%Vd(home_lock_clock)%Vd(home_lock_date)%Vd(home_lock_battery)%?bs<%Vd(home_lock_sleep)>%Vd(home_lock_notif)%Vd(home_lock_notif_art)%Vd(home_lock_title)%Vd(home_lock_artist)%Vd(home_lock_play)%?pS(0.2)<%Vd(home_lock_refresh)>|>|>
+# %?if(%cs, =, 1)<%?mh<%Vd(home_lock_wallpaper)%Vd(home_lock_clock)%Vd(home_lock_date)%Vd(home_lock_battery)%?bs<%Vd(home_lock_sleep)>%Vd(home_lock_notif)%Vd(home_lock_notif_art)%Vd(home_lock_title)%Vd(home_lock_artist)%Vd(home_lock_play)%?pS(0.2)<%Vd(home_lock_refresh)>|>|>
 
 # ── Header background (30px, FFFFFF) ─────────────────────────────────────────
 %V(0,0,-,30,-)

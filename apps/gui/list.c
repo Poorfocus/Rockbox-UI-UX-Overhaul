@@ -172,6 +172,22 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
         }
         if (list->line_height[screen] < min_row)
             list->line_height[screen] = min_row;
+
+        /* ---- DYNAMIC FILL — DO NOT DELETE THIS BLOCK ----
+         * Distributes leftover vertical pixels evenly across rows so the
+         * list fills the viewport with no visible dead gap at the bottom.
+         * Row heights change by ~2-3px when the mini-player appears or
+         * disappears — this is intentional and far less noticeable than
+         * the 22px dead gap that results from removing this block. */
+        {
+            int avail = vp->height;
+            if (avail > 0 && list->line_height[screen] > 0)
+            {
+                int n = avail / list->line_height[screen];
+                if (n > 0)
+                    list->line_height[screen] = avail / n;
+            }
+        }
     }
 #endif
 }

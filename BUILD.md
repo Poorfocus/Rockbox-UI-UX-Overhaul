@@ -71,6 +71,15 @@ Artifact: `build-hw-ipodvideo\rockbox.zip`.
 
 This checks that `make install` produced `rockboxui.exe`, `themes/Apple2026.cfg`, and the Apple2026 font/icon paths under `build-sim/simdisk/.rockbox/`.
 
+**Plugin/package sanity checks:** after a successful build, confirm that built
+plugins actually landed in the packaged output:
+
+```powershell
+python tools\verify_plugin_package.py --build-dir build-sim --package-root build-sim\simdisk\.rockbox
+python tools\verify_plugin_package.py --build-dir build-hw-ipod6g --zip-artifact build-hw-ipod6g\rockbox.zip
+python tools\verify_plugin_package.py --build-dir build-hw-ipodvideo --zip-artifact build-hw-ipodvideo\rockbox.zip
+```
+
 ---
 
 ## End-to-end flow (what the scripts do)
@@ -80,7 +89,18 @@ This checks that `make install` produced `rockboxui.exe`, `themes/Apple2026.cfg`
 3. **`make`**: parallel compile — `rockboxui.exe` (sim) or firmware + codecs + plugins (hw).
 4. **`make install` (sim)** / **`make zip` (hw)**: `tools/buildzip.pl` packages resources; themes go through `wps/wpsbuild.pl` and `wps/WPSLIST` (fonts, WPS/SBS, icons copied into the output tree).
 
-Apple2026 guardrail: `build-sim.sh` now runs `tools/apple2026_skin_audit.py` against the simulator install tree, and `build-hw.sh` runs the same audit against the generated `rockbox.zip`. If the Apple2026 source, runtime install, or hardware zip drift apart, the build should fail instead of producing a misleading release artifact.
+Apple2026 guardrail: `build-sim.sh` now runs `tools/apple2026_skin_audit.py`
+against the simulator install tree, and `build-hw.sh` runs the same audit
+against the generated `rockbox.zip`. `tools/verify_plugin_package.py` now also
+checks that built plugins and key sidecar files actually land in the final sim
+tree / hardware zip. If the Apple2026 source, runtime install, hardware zip, or
+plugin package tree drift apart, the build should fail instead of producing a
+misleading release artifact.
+
+Hardware release-hardening note: `build-hw.sh` now stops on the first failing
+build command and removes stale `rockbox.zip` before regenerating it. A failed
+incremental hardware build should no longer leave behind an older zip that looks
+fresh enough to ship by mistake.
 
 Apple2026 assets (`fonts/`, `icons/`, `wps/Apple2026/`) are **copied** at install/zip time. Optional Python generators (below) are **not** run automatically.
 
