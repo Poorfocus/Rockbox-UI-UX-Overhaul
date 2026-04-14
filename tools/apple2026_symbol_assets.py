@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Generate Apple2026 icon/symbol bitmap assets from sf-symbols-master glyphs.
+"""Generate Apple2026 WPS/status symbol bitmap assets from sf-symbols-master glyphs.
 
-This script intentionally replaces inherited donor icon sheets for the active
-Apple2026 shell pass with symbol-first assets from:
+This script generates Apple2026 WPS/status assets from:
     Sourced Icons/sf-symbols-master/glyphs/*.png
+
+The main menu icon strip `icons/Apple2026Icons.bmp` is a checked-in Apple2026
+asset and must not be regenerated here. Earlier neutral-shell passes
+accidentally overwrote it with a 15x16 strip, which broke the list icon
+geometry at runtime.
 """
 
 from __future__ import annotations
@@ -13,11 +17,14 @@ from typing import Iterable
 
 from PIL import Image, ImageOps, ImageDraw
 
+from apple2026_palette import ACCENT, SHELL_BG, TEXT_TERTIARY
+
 
 ROOT = Path(__file__).resolve().parents[1]
 GLYPH_DIR = ROOT / "Sourced Icons" / "sf-symbols-master" / "glyphs"
 ICONSET_OUT = ROOT / "icons" / "Apple2026Icons.bmp"
 WPS_ASSET_DIR = ROOT / "wps" / "Apple2026"
+INTERPOD_LOSSLESS = ROOT / "Imported Reference Themes" / "Interpod" / ".rockbox" / "wps" / "Interpod" / "losslessIndicator.bmp"
 TRANSPARENT_KEY = (255, 0, 255)
 
 
@@ -164,8 +171,9 @@ def generate_main_iconset() -> None:
         "music.house.fill",                 # Icon_Rockbox
     ]
 
+    accent_rgba = ACCENT + (255,)
     tiles = [
-        _render_symbol_tile(name, 15, 16, padding=2, color=(0, 0, 0, 255), scale=0.90)
+        _render_symbol_tile(name, 15, 16, padding=2, color=accent_rgba, scale=0.90)
         for name in ordered_symbols
     ]
     _save_strip(ICONSET_OUT, 15, 16, tiles)
@@ -175,11 +183,20 @@ def generate_wps_symbols() -> None:
     # playerStatus.bmp: 4 stacked states, 15x16 each
     player_tiles = [
         _render_symbol_tile("stop.fill", 15, 16, padding=2, scale=0.88),
-        _render_symbol_tile("play.fill", 15, 16, padding=2, scale=0.88),
         _render_symbol_tile("pause.fill", 15, 16, padding=2, scale=0.88),
+        _render_symbol_tile("play.fill", 15, 16, padding=2, scale=0.88),
         _render_symbol_tile("forward.fill", 15, 16, padding=2, scale=0.88),
     ]
     _save_strip(WPS_ASSET_DIR / "playerStatus.bmp", 15, 16, player_tiles)
+
+    # playerStatusLarge.bmp: WPS-only larger transport strip, 20x20 each
+    player_large_tiles = [
+        _render_symbol_tile("stop.fill", 20, 20, padding=1, scale=0.94),
+        _render_symbol_tile("pause.fill", 20, 20, padding=1, scale=0.94),
+        _render_symbol_tile("play.fill", 20, 20, padding=1, scale=0.94),
+        _render_symbol_tile("forward.fill", 20, 20, padding=1, scale=0.94),
+    ]
+    _save_strip(WPS_ASSET_DIR / "playerStatusLarge.bmp", 20, 20, player_large_tiles)
 
     # holdSlider.bmp: 2 stacked states, 9x12 each
     hold_tiles = [
@@ -194,6 +211,14 @@ def generate_wps_symbols() -> None:
     _render_symbol_tile("repeat", 16, 11, padding=1, scale=0.90).save(
         WPS_ASSET_DIR / "repeat.bmp", "BMP"
     )
+    _render_symbol_tile(
+        "repeat",
+        20,
+        15,
+        padding=1,
+        scale=0.95,
+        color=TEXT_TERTIARY + (255,),
+    ).save(WPS_ASSET_DIR / "repeatLarge.bmp", "BMP")
     _render_symbol_tile("repeat.1", 11, 12, padding=1, scale=0.92).save(
         WPS_ASSET_DIR / "repeatOne.bmp", "BMP"
     )
@@ -203,14 +228,29 @@ def generate_wps_symbols() -> None:
     _render_symbol_tile("repeat", 15, 11, padding=1, scale=0.90).save(
         WPS_ASSET_DIR / "repeatAB.bmp", "BMP"
     )
-    _render_symbol_tile("waveform", 66, 11, padding=2, scale=0.88, color=(110, 110, 115, 255)).save(
-        WPS_ASSET_DIR / "losslessIndicator.bmp", "BMP"
+    _render_symbol_tile("shuffle", 16, 11, padding=1, scale=0.90).save(
+        WPS_ASSET_DIR / "shuffle.bmp", "BMP"
     )
+    _render_symbol_tile(
+        "shuffle",
+        20,
+        15,
+        padding=1,
+        scale=0.95,
+        color=TEXT_TERTIARY + (255,),
+    ).save(WPS_ASSET_DIR / "shuffleLarge.bmp", "BMP")
+
+    if INTERPOD_LOSSLESS.exists():
+        Image.open(INTERPOD_LOSSLESS).convert("RGB").save(WPS_ASSET_DIR / "losslessIndicator.bmp", "BMP")
+    else:
+        _render_symbol_tile("waveform", 66, 11, padding=2, scale=0.88, color=(110, 110, 115, 255)).save(
+            WPS_ASSET_DIR / "losslessIndicator.bmp", "BMP"
+        )
 
     _render_symbol_tile("speaker.2.fill", 19, 17, padding=1, scale=0.90).save(
         WPS_ASSET_DIR / "speaker_loud.bmp", "BMP"
     )
-    _render_symbol_tile("speaker.slash.fill", 8, 13, padding=0, scale=0.90).save(
+    _render_symbol_tile("speaker.slash.fill", 19, 17, padding=1, scale=0.90).save(
         WPS_ASSET_DIR / "speaker_mute.bmp", "BMP"
     )
 
@@ -256,33 +296,18 @@ def generate_wps_symbols() -> None:
     battery_strip.save(WPS_ASSET_DIR / "batteryStatus.bmp", "BMP")
 
 
-def generate_shell_bitmaps() -> None:
-    # Full-screen WPS backdrop (light-shell baseline)
-    wps_bg = Image.new("RGB", (320, 240), (248, 248, 248))
-    draw = ImageDraw.Draw(wps_bg)
-    draw.line((0, 25, 319, 25), fill=(227, 227, 227), width=1)
-    draw.line((0, 203, 319, 203), fill=(227, 227, 227), width=1)
-    wps_bg.save(WPS_ASSET_DIR / "wpsBackdrop.bmp", "BMP")
+def generate_usb_backdrop() -> None:
+    """Generate the neutral USB takeover background.
 
-    # USB takeover background aligned to same shell language
-    usb_bg = Image.new("RGB", (320, 240), (248, 248, 248))
+    WPS backdrop, art placeholder, and mini-player surfaces are owned by
+    apple2026_wps_art_frame.py. Keep this script limited to symbol sheets and
+    the USB backdrop so asset ownership does not drift across generators again.
+    """
+    usb_bg = Image.new("RGB", (320, 240), SHELL_BG)
     draw = ImageDraw.Draw(usb_bg)
     draw.line((0, 25, 319, 25), fill=(227, 227, 227), width=1)
     draw.rounded_rectangle((84, 74, 236, 166), radius=12, outline=(214, 214, 219), width=1)
     usb_bg.save(WPS_ASSET_DIR / "usbBackdrop.bmp", "BMP")
-
-    # Album placeholder card with centered music-note symbol
-    placeholder = Image.new("RGBA", (130, 130), (239, 239, 239, 255))
-    draw = ImageDraw.Draw(placeholder)
-    draw.rounded_rectangle((0, 0, 129, 129), radius=8, outline=(214, 214, 219), width=1)
-    _paste_symbol_on_bg(
-        placeholder,
-        "music.note",
-        box=(37, 37, 56, 56),
-        color=(110, 110, 115, 255),
-        padding=0,
-    )
-    placeholder.convert("RGB").save(WPS_ASSET_DIR / "albumPlaceholder.bmp", "BMP")
 
 
 
@@ -291,12 +316,10 @@ def main() -> None:
         raise SystemExit(f"Glyph directory not found: {GLYPH_DIR}")
 
     WPS_ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    generate_main_iconset()
     generate_wps_symbols()
-    generate_shell_bitmaps()
+    generate_usb_backdrop()
 
     print("Generated:")
-    print(f"  {ICONSET_OUT}")
     print(f"  {WPS_ASSET_DIR / 'playerStatus.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'holdSlider.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'sleep.bmp'}")
@@ -304,14 +327,13 @@ def main() -> None:
     print(f"  {WPS_ASSET_DIR / 'repeatOne.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'repeatShuffle.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'repeatAB.bmp'}")
+    print(f"  {WPS_ASSET_DIR / 'shuffle.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'losslessIndicator.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'speaker_loud.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'speaker_mute.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'speaker_too_loud.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'busyIndicator.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'batteryStatus.bmp'}")
-    print(f"  {WPS_ASSET_DIR / 'albumPlaceholder.bmp'}")
-    print(f"  {WPS_ASSET_DIR / 'wpsBackdrop.bmp'}")
     print(f"  {WPS_ASSET_DIR / 'usbBackdrop.bmp'}")
 
 

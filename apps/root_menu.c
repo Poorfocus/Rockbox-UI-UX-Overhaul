@@ -713,8 +713,18 @@ static struct menu_callback_with_desc root_menu_desc = {
  * and follows normal ft_exit() back-navigation to '/'.  This is
  * architecturally distinct from Music (GO_TO_MUSICLIB) which is bounded
  * to /Music/ and returns to the main menu on back. */
-MENUITEM_RETURNVALUE(files_browser, "Files", GO_TO_FILEBROWSER,
-                     NULL, Icon_file_view_menu);
+static int extras_files_fn(void)
+{
+    int ret = browser((void*)GO_TO_FILEBROWSER);
+    /* Propagate playback transitions (GO_TO_WPS, GO_TO_PLUGIN, etc.)
+     * but convert normal exits (GO_TO_ROOT, GO_TO_PREVIOUS) to 0
+     * so do_menu() stays in the Extras submenu. */
+    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
+        return 0;
+    return ret;
+}
+MENUITEM_FUNCTION(files_browser, MENU_FUNC_CHECK_RETVAL,
+                  "Files", extras_files_fn, NULL, Icon_file_view_menu);
 #ifdef HAVE_RECORDING
 MAKE_MENU(extras_submenu, "Extras", 0, Icon_Plugin,
           &files_browser, &rocks_browser, &shortcut_menu, &rec);
@@ -1189,18 +1199,37 @@ void root_menu(void)
                  * flag; FM is irrelevant for this check. */
                 if (next_screen == GO_TO_WPS)
                 {
-                    wps_entered_from_root = (last_screen == GO_TO_ROOT);
-                    if (last_screen == GO_TO_ROOT)
+                    if (last_screen == GO_TO_ROOT
+                        && global_status.playback_context == PLAYBACK_CONTEXT_NONE)
+                    {
+                        /* No saved context — cold entry from root */
+                        wps_entered_from_root = true;
                         playback_context_set_root();
+                    }
+                    else
+                    {
+                        /* Context exists from previous browse-to-play.
+                         * Honor it so Menu returns to track origin. */
+                        wps_entered_from_root = (last_screen == GO_TO_ROOT
+                            && global_status.playback_context == PLAYBACK_CONTEXT_ROOT);
+                    }
                 }
                 previous_music = next_screen;
                 goto load_next_screen;
                 break;
 #else
             case GO_TO_WPS:
-                wps_entered_from_root = (last_screen == GO_TO_ROOT);
-                if (last_screen == GO_TO_ROOT)
+                if (last_screen == GO_TO_ROOT
+                    && global_status.playback_context == PLAYBACK_CONTEXT_NONE)
+                {
+                    wps_entered_from_root = true;
                     playback_context_set_root();
+                }
+                else
+                {
+                    wps_entered_from_root = (last_screen == GO_TO_ROOT
+                        && global_status.playback_context == PLAYBACK_CONTEXT_ROOT);
+                }
                 goto load_next_screen;
                 break;
 #endif

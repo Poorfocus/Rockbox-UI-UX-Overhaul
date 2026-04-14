@@ -6,6 +6,7 @@ action.c
 alarm_menu.c
 #endif
 abrepeat.c
+apple2026_shell.c
 bookmark.c
 core_keymap.c
 debug_menu.c

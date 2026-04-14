@@ -16,14 +16,16 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from apple2026_palette import ACCENT, GROUPED_FILL, OPAQUE_SEPARATOR, SHELL_BG, TEXT_TERTIARY
+
 ROOT = Path(__file__).resolve().parents[1]
 WPS_DIR = ROOT / "wps" / "Apple2026"
 
 TRANSPARENT_KEY = (255, 0, 255)
 
-CLR_ACCENT = (255, 45, 85)       # FF2D55
-CLR_TERTIARY = (60, 60, 67)      # 3C3C43
-CLR_WHITE = (255, 255, 255)
+CLR_ACCENT = ACCENT
+CLR_TERTIARY = TEXT_TERTIARY
+CLR_WHITE = SHELL_BG
 
 
 def _wallpaper(path: Path):
@@ -46,9 +48,9 @@ def _notification_card(path: Path):
     Rendered opaque — no alpha composite needed.
     """
     w, h, r = 288, 70, 14
-    shell_bg = (255, 255, 255)      # FFFFFF — matches Wallpaper.bmp
-    card_fill = (242, 242, 247)     # F2F2F7 — iOS grouped background
-    card_border = (198, 198, 200)   # C6C6C8 — Apple separator gray
+    shell_bg = SHELL_BG
+    card_fill = GROUPED_FILL
+    card_border = OPAQUE_SEPARATOR
     img = Image.new("RGB", (w, h), shell_bg)
     draw = ImageDraw.Draw(img)
     draw.rounded_rectangle((0, 0, w - 1, h - 1), radius=r, fill=card_fill, outline=card_border, width=1)

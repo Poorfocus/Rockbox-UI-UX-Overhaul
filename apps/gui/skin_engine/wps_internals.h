@@ -105,6 +105,7 @@ struct gui_img {
     int buflib_handle;
     OFFSETTYPE(char*) label;
     int display;
+    bool draw_after_albumart;
     bool loaded;            /* load state */
     bool using_preloaded_icons; /* using the icon system instead of a bmp */
     bool is_9_segment;

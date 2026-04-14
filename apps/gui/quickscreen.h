@@ -45,9 +45,18 @@ enum quickscreen_return {
     QUICKSCREEN_CHANGED = 0x4,
 };
 
+enum quickscreen_runtime_mode {
+    QS_RUNTIME_GLOBAL = 0,
+    QS_RUNTIME_APPLE2026_FIXED,
+};
+
 extern int quick_screen_quick(int button_enter);
 int quickscreen_set_option(void *data);
 bool is_setting_quickscreenable(const struct settings_list *setting);
+bool quickscreen_runtime_active(void);
+bool quickscreen_runtime_use_skin_only(void);
+enum quickscreen_runtime_mode quickscreen_runtime_mode(void);
+const struct settings_list *quickscreen_runtime_item(enum quickscreen_item item);
 
 #endif /*_GUI_QUICK_SCREEN_H_*/
 #endif /* HAVE_QUICKSCREEN */

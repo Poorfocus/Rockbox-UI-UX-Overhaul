@@ -83,6 +83,9 @@ uint32_t open_plugin_add_path(const char *key, const char *plugin, const char *p
 int open_plugin_load_entry(const char *key);
 void open_plugin_browse(const char *key);
 int open_plugin_run(const char *key);
+int open_plugin_run_chain(const char *key);
+bool open_plugin_ensure_default(const char *key, const char *plugin,
+                                const char *parameter);
 void open_plugin_cache_flush(void); /* flush to disk */
 void open_plugin_import(char *strdat);
 void open_plugin_export(int cfg_fd);

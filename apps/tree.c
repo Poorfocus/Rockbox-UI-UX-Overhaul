@@ -627,6 +627,7 @@ static int update_dir(void)
     }
 #endif
     gui_synclist_set_font_tier(list, tier);
+    gui_synclist_refresh_layout(list);
 #endif
     if( tc.selected_item >= tc.filesindir)
         tc.selected_item=tc.filesindir-1;
@@ -841,7 +842,10 @@ static int exit_to_new_screen(int screen)
     return screen;
 }
 
-/* Apple2026: tag WPS return target when tree starts playback */
+/* Apple2026: tag WPS return target from the current tree context.
+ * Used both when a tree row starts playback and when Play jumps from a
+ * browser into WPS so short Menu returns to the surface the user just left.
+ */
 static void tree_set_playback_context_for_wps(void)
 {
     char selected_path[MAX_PATH];
@@ -863,16 +867,11 @@ static void tree_set_playback_context_for_wps(void)
         strmemccpy(selected_path, tc.currdir, sizeof(selected_path));
 
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-    if (!strncmp(tc.currdir, "/Music", 6)
-        && (tc.currdir[6] == '/' || tc.currdir[6] == '\0'))
-    {
+    if (tc.browse && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB))
         playback_context_set_filesystem(GO_TO_MUSICLIB, selected_path);
-    }
     else
 #endif
-    {
         playback_context_set_filesystem(GO_TO_FILEBROWSER, selected_path);
-    }
 }
 
 /* main loop, handles key events */
@@ -1056,6 +1055,8 @@ static int dirbrowse(void)
 #endif
 
             case ACTION_TREE_WPS:
+                if (audio_status())
+                    tree_set_playback_context_for_wps();
                 return exit_to_new_screen(GO_TO_PREVIOUS_MUSIC);
                 break;
 #ifdef HAVE_QUICKSCREEN
@@ -1322,6 +1323,12 @@ int rockbox_browse(struct browse_context *browse)
     int *prev_dirfilter = tc.dirfilter;
     tc.dirfilter = &dirfilter;
     tc.sort_dir = global_settings.sort_dir;
+
+    /* Apple2026: force directory parsing recalculation.
+     * If this is not cleared, set_current_file falsely identifies
+     * the directory as unchanged during WPS return and aborts
+     * dirlevel recalculation, breaking Apple2026 font sizing. */
+    lastdir[0] = '\0';
 
     reload_dir = true;
 

@@ -67,6 +67,7 @@ struct skin_draw_info {
     bool no_line_break;
     bool line_scrolls;
     bool force_redraw;
+    bool albumart_seen;
 
     char *buf;
     size_t buf_size;
@@ -248,7 +249,10 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
         {
             struct gui_img *img = SKINOFFSETTOPTR(skin_buffer, token->value.data);
             if (img && img->loaded && do_refresh)
+            {
                 img->display = 0;
+                img->draw_after_albumart = info->albumart_seen;
+            }
         }
         break;
         case SKIN_TOKEN_IMAGE_DISPLAY_LISTICON:
@@ -261,6 +265,9 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
             struct gui_img *img = skin_find_item(label,SKIN_FIND_IMAGE, data);
             if (img && img->loaded)
             {
+                /* Keep plain %xd(...) calls in the same pass bucket as token-driven
+                 * image draws so art trim placed after %Cd actually renders after it. */
+                img->draw_after_albumart = info->albumart_seen;
                 if (SKINOFFSETTOPTR(skin_buffer, id->token) == NULL)
                 {
                     img->display = id->subimage;
@@ -290,6 +297,7 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
                     if (a >= 0 && a < img->num_subimages)
                     {
                         img->display = a;
+                        img->draw_after_albumart = info->albumart_seen;
                     }
                 }
             }
@@ -315,6 +323,7 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
                     aa->draw_handle = handle;
                 }
             }
+            info->albumart_seen = true;
             break;
         }
 #endif
@@ -772,6 +781,7 @@ void skin_render_viewport(struct skin_element* viewport, struct gui_wps *gwps,
         .line_number = 0,
         .no_line_break = false,
         .line_scrolls = false,
+        .albumart_seen = false,
         .refresh_type = refresh_type,
         .skin_vp = skin_viewport,
         .offset = 0,
@@ -789,7 +799,10 @@ void skin_render_viewport(struct skin_element* viewport, struct gui_wps *gwps,
         if (token) {
             struct gui_img *img = (struct gui_img *)SKINOFFSETTOPTR(skin_buffer, token->value.data);
         if (img)
+            {
                 img->display = -1;
+                img->draw_after_albumart = false;
+            }
         }
         imglist = SKINOFFSETTOPTR(skin_buffer, imglist->next);
     }

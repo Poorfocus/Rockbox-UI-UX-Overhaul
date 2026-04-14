@@ -20,13 +20,15 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from apple2026_palette import PROGRESS_TRACK, SHELL_BG, TEXT_TERTIARY
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "wps" / "Apple2026"
 
 # Apple Music scrubber colors (from iOS Stocks SVG reference).
-CLR_UNPLAYED = (199, 199, 204)  # C7C7CC -- unplayed track / bar background
-CLR_PLAYED   = (60,  60,  67)   # 3C3C43 -- played fill / active bar fill
-CLR_SHELL    = (255, 255, 255)  # FFFFFF -- canvas bg matches WPS backdrop
+CLR_UNPLAYED = PROGRESS_TRACK
+CLR_PLAYED   = TEXT_TERTIARY
+CLR_SHELL    = SHELL_BG
 
 def _pill_rgb(width, height, fill):
     """Render a full-width pill on a CLR_SHELL canvas.

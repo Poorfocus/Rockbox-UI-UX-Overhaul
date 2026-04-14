@@ -63,7 +63,9 @@
 #include "wps.h"
 #include "statusbar-skinned.h"
 #include "skin_engine/wps_internals.h"
+#include "plugin.h"
 #include "open_plugin.h"
+#include "rbpaths.h"
 
 #ifdef USB_ENABLE_AUDIO
 #include "usbstack/usb_audio.h"
@@ -681,7 +683,7 @@ static inline int action_wpsab_single(long button)
     return button;
 }
 
-/* Apple2026: shared context-preserving leave from WPS (SELECT short and MENU short).
+/* Apple2026: shared context-preserving leave from WPS via short MENU.
  * Returns false with *out_screen set when root_menu should switch screens.
  * Returns true to stay in WPS (*restore / *theme_enabled updated for plugin case). */
 static bool wps_handle_browse_parent(long *out_screen, bool *theme_enabled,
@@ -763,6 +765,33 @@ static bool wps_handle_browse_parent(long *out_screen, bool *theme_enabled,
         gwps_leave_wps(true);
         *out_screen = GO_TO_PREVIOUS_BROWSER;
         return false;
+    }
+}
+
+static bool wps_finish_inline_plugin(int plugin_ret, long *out_screen,
+                                     bool *restore)
+{
+    switch (plugin_ret)
+    {
+        case PLUGIN_GOTO_ROOT:
+        case PLUGIN_USB_CONNECTED:
+            gwps_leave_wps(true);
+            *out_screen = GO_TO_ROOT;
+            return false;
+        case PLUGIN_ERROR:
+            *restore = true;
+            return true;
+        case PLUGIN_OK:
+        case PLUGIN_GOTO_WPS:
+        default:
+            if (!audio_status())
+            {
+                gwps_leave_wps(true);
+                *out_screen = GO_TO_ROOT;
+                return false;
+            }
+            *restore = true;
+            return true;
     }
 }
 
@@ -888,14 +917,16 @@ long gui_wps_show(void)
                     /* leave WPS without re-enabling theme */
                     theme_enabled = false;
                     gwps_leave_wps(theme_enabled);
-                    onplay(state->id3->path,
+                    int retval = onplay(state->id3->path,
                            FILE_ATTR_AUDIO, CONTEXT_WPS, hotkey, ONPLAY_NO_CUSTOMACTION);
-                    if (!audio_status())
+                    if (retval == ONPLAY_MAINMENU || !audio_status())
                     {
                         /* re-enable theme since we're returning to SBS */
                         gwps_leave_wps(true);
                         return GO_TO_ROOT;
                     }
+                    else if (retval == ONPLAY_PLAYLIST)
+                        return GO_TO_PLAYLIST_VIEWER;
                     restore = true;
                     break;
                 }
@@ -915,12 +946,22 @@ long gui_wps_show(void)
                     return GO_TO_PLAYLIST_VIEWER;
                 else if (retval == ONPLAY_PLUGIN)
                 {
+                    long next_screen;
                     restore_theme();
                     theme_enabled = false;
-                    open_plugin_run(ID2P(LANG_OPEN_PLUGIN_SET_WPS_CONTEXT_PLUGIN));
+                    open_plugin_ensure_default(
+                        ID2P(LANG_OPEN_PLUGIN_SET_WPS_CONTEXT_PLUGIN),
+                        PLUGIN_APPS_DIR "/lrcplayer.rock", NULL);
+                    if (!wps_finish_inline_plugin(
+                            open_plugin_run_chain(
+                                ID2P(LANG_OPEN_PLUGIN_SET_WPS_CONTEXT_PLUGIN)),
+                            &next_screen, &restore))
+                    {
+                        return next_screen;
+                    }
                 }
-
-                restore = true;
+                else
+                    restore = true;
             }
             break;
 
@@ -1172,6 +1213,30 @@ long gui_wps_show(void)
 struct wps_state *get_wps_state(void)
 {
     return &wps_state;
+}
+
+/* SBS and other skinned surfaces may query metadata before WPS has ever been
+ * entered. Fall back to the playback core in that case instead of requiring
+ * wps_state_init() to have populated the shared pointers already.
+ */
+struct mp3entry *wps_get_current_id3(void)
+{
+    struct wps_state *state = get_wps_state();
+    if (state->id3)
+        return state->id3;
+    if (audio_status() & AUDIO_STATUS_PLAY)
+        return audio_current_track();
+    return NULL;
+}
+
+struct mp3entry *wps_get_next_id3(void)
+{
+    struct wps_state *state = get_wps_state();
+    if (state->nid3)
+        return state->nid3;
+    if (audio_status() & AUDIO_STATUS_PLAY)
+        return audio_next_track();
+    return NULL;
 }
 
 /* this is called from the playback thread so NO DRAWING! */

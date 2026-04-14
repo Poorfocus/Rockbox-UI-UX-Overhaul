@@ -86,6 +86,7 @@ static void toggle_events(bool enable)
     evt_toggle(enable, GUI_EVENT_ACTIONUPDATE, viewportmanager_redraw);
     evt_toggle(enable, PLAYBACK_EVENT_TRACK_CHANGE, do_sbs_update_callback);
     evt_toggle(enable, PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE, do_sbs_update_callback);
+    evt_toggle(enable, PLAYBACK_EVENT_CUR_TRACK_READY, do_sbs_update_callback);
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
     evt_toggle(enable, LCD_EVENT_ACTIVATION, do_sbs_update_callback);
 #endif

@@ -84,7 +84,7 @@ void skin_update(enum skinnable_screens skin, enum screen_type screen,
     struct gui_wps *gwps = skin_get_gwps(skin, screen);
     /* This maybe shouldnt be here,
      * This is also safe for skined screen which dont use the id3 */
-    struct mp3entry *id3 = get_wps_state()->id3;
+    struct mp3entry *id3 = wps_get_current_id3();
     bool cuesheet_update = (id3 != NULL ? cuesheet_subtrack_changed(id3) : false);
     if (cuesheet_update)
         skin_request_full_update(skin);
@@ -165,7 +165,7 @@ void draw_progressbar(struct gui_wps *gwps, struct skin_viewport* skin_viewport,
     struct screen *display = gwps->display;
     struct viewport *vp = &skin_viewport->vp;
     struct wps_state *state = get_wps_state();
-    struct mp3entry *id3 = state->id3;
+    struct mp3entry *id3 = wps_get_current_id3();
     int x = pb->x, y = pb->y, width = pb->width, height = pb->height;
     unsigned long length, end;
     int flags = HORIZONTAL;
@@ -398,8 +398,9 @@ void wps_display_images(struct gui_wps *gwps, struct viewport* vp)
     (void)vp;
     struct wps_data *data = gwps->data;
     struct screen *display = gwps->display;
-    struct skin_token_list *list = SKINOFFSETTOPTR(get_skin_buffer(data), data->images);
+    struct skin_token_list *list;
 
+    list = SKINOFFSETTOPTR(get_skin_buffer(data), data->images);
     while (list)
     {
         struct wps_token *token = SKINOFFSETTOPTR(get_skin_buffer(data), list->token);
@@ -409,11 +410,12 @@ void wps_display_images(struct gui_wps *gwps, struct viewport* vp)
         if (img) {
             if (img->using_preloaded_icons && img->display >= 0)
             {
-                screen_put_icon(display, img->x, img->y, img->display);
+                if (!img->draw_after_albumart)
+                    screen_put_icon(display, img->x, img->y, img->display);
             }
             else if (img->loaded)
             {
-                if (img->display >= 0)
+                if (img->display >= 0 && !img->draw_after_albumart)
                 {
                     wps_draw_image(gwps, img, img->display, vp);
                 }
@@ -430,6 +432,22 @@ void wps_display_images(struct gui_wps *gwps, struct viewport* vp)
         aa->draw_handle = -1;
     }
 #endif
+    list = SKINOFFSETTOPTR(get_skin_buffer(data), data->images);
+    while (list)
+    {
+        struct wps_token *token = SKINOFFSETTOPTR(get_skin_buffer(data), list->token);
+        struct gui_img *img = NULL;
+        if (token)
+            img = (struct gui_img*)SKINOFFSETTOPTR(get_skin_buffer(data), token->value.data);
+        if (img && img->display >= 0 && img->draw_after_albumart)
+        {
+            if (img->using_preloaded_icons)
+                screen_put_icon(display, img->x, img->y, img->display);
+            else if (img->loaded)
+                wps_draw_image(gwps, img, img->display, vp);
+        }
+        list = SKINOFFSETTOPTR(get_skin_buffer(data), list->next);
+    }
 
     display->set_drawmode(DRMODE_SOLID);
 }

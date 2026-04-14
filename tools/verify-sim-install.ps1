@@ -34,6 +34,7 @@ $required = @(
     @{ Rel = ".apple2026_version";                    Full = Join-Path $SimRoot ".apple2026_version";   Note = "Apple2026 theme/version self-heal stamp" }
     @{ Rel = "themes\Apple2026.cfg";                   Full = Join-Path $SimRoot "themes\Apple2026.cfg"; Note = "Apple2026 theme cfg (wpsbuild)" }
     @{ Rel = "fonts\28-SFProDisplay-Bold.fnt";         Full = Join-Path $SimRoot "fonts\28-SFProDisplay-Bold.fnt";  Note = "SBS slot 2 - large title; MISSING = no Library heading" }
+    @{ Rel = "fonts\13-SFCompactText-Regular.fnt";     Full = Join-Path $SimRoot "fonts\13-SFCompactText-Regular.fnt"; Note = "WPS slot 6 - compact repeat/status labels" }
     @{ Rel = "fonts\16-SFProText-Semibold.fnt";        Full = Join-Path $SimRoot "fonts\16-SFProText-Semibold.fnt"; Note = "SBS slot 3 - header chrome + mini-player track" }
     @{ Rel = "fonts\20-SFProText-Regular.fnt";         Full = Join-Path $SimRoot "fonts\20-SFProText-Regular.fnt";  Note = "SBS slot 5 + WPSLIST list font" }
     @{ Rel = "fonts\22-SFProText-Regular.fnt";         Full = Join-Path $SimRoot "fonts\22-SFProText-Regular.fnt";  Note = "legacy list font / config.cfg override" }
@@ -45,9 +46,21 @@ $required = @(
     @{ Rel = "wps\Apple2026.wps";                      Full = Join-Path $SimRoot "wps\Apple2026.wps";               Note = "Apple2026 WPS skin" }
     @{ Rel = "wps\Apple2026\batteryStatus.bmp";        Full = Join-Path $SimRoot "wps\Apple2026\batteryStatus.bmp"; Note = "WPS battery strip" }
     @{ Rel = "wps\Apple2026\playerStatus.bmp";         Full = Join-Path $SimRoot "wps\Apple2026\playerStatus.bmp"; Note = "WPS player state strip" }
+    @{ Rel = "wps\Apple2026\playerStatusLarge.bmp";    Full = Join-Path $SimRoot "wps\Apple2026\playerStatusLarge.bmp"; Note = "WPS large player state strip" }
+    @{ Rel = "wps\Apple2026\repeatLarge.bmp";          Full = Join-Path $SimRoot "wps\Apple2026\repeatLarge.bmp"; Note = "WPS large repeat glyph" }
+    @{ Rel = "wps\Apple2026\shuffle.bmp";              Full = Join-Path $SimRoot "wps\Apple2026\shuffle.bmp"; Note = "WPS shuffle glyph" }
+    @{ Rel = "wps\Apple2026\shuffleLarge.bmp";         Full = Join-Path $SimRoot "wps\Apple2026\shuffleLarge.bmp"; Note = "WPS large shuffle glyph" }
+    @{ Rel = "wps\Apple2026\losslessIndicator.bmp";    Full = Join-Path $SimRoot "wps\Apple2026\losslessIndicator.bmp"; Note = "WPS Interpod-derived lossless badge" }
     @{ Rel = "wps\Apple2026\pb.bmp";                   Full = Join-Path $SimRoot "wps\Apple2026\pb.bmp";            Note = "WPS progress bar fill" }
     @{ Rel = "wps\Apple2026\pb_backdrop.bmp";          Full = Join-Path $SimRoot "wps\Apple2026\pb_backdrop.bmp";  Note = "WPS progress bar backdrop" }
     @{ Rel = "wps\Apple2026\albumPlaceholder.bmp";     Full = Join-Path $SimRoot "wps\Apple2026\albumPlaceholder.bmp"; Note = "WPS no-cover placeholder" }
+    @{ Rel = "wps\Apple2026\qs_wheel.bmp";             Full = Join-Path $SimRoot "wps\Apple2026\qs_wheel.bmp";     Note = "Quick settings wheel asset" }
+    @{ Rel = "wps\Apple2026\qs_slider_fill.bmp";       Full = Join-Path $SimRoot "wps\Apple2026\qs_slider_fill.bmp"; Note = "Quick settings slider fill asset" }
+    @{ Rel = "wps\Apple2026\qs_slider_track.bmp";      Full = Join-Path $SimRoot "wps\Apple2026\qs_slider_track.bmp"; Note = "Quick settings slider track asset" }
+    @{ Rel = "wps\Apple2026\qs_bar_fill.bmp";          Full = Join-Path $SimRoot "wps\Apple2026\qs_bar_fill.bmp"; Note = "Quick settings horizontal bar fill asset" }
+    @{ Rel = "wps\Apple2026\qs_bar_track.bmp";         Full = Join-Path $SimRoot "wps\Apple2026\qs_bar_track.bmp"; Note = "Quick settings horizontal bar track asset" }
+    @{ Rel = "wps\Apple2026\qs_sun_max.bmp";           Full = Join-Path $SimRoot "wps\Apple2026\qs_sun_max.bmp"; Note = "Quick settings brightness-up symbol" }
+    @{ Rel = "wps\Apple2026\qs_sun_min.bmp";           Full = Join-Path $SimRoot "wps\Apple2026\qs_sun_min.bmp"; Note = "Quick settings brightness-down symbol" }
 )
 
 $fail = 0

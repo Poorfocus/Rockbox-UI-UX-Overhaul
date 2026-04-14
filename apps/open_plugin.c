@@ -502,6 +502,46 @@ int open_plugin_run(const char *key)
     return ret;
 }
 
+int open_plugin_run_chain(const char *key)
+{
+    int ret = PLUGIN_ERROR;
+    int loops = 100;
+
+    while (loops-- > 0)
+    {
+        ret = open_plugin_run(key);
+        if (ret != PLUGIN_GOTO_PLUGIN)
+            break;
+
+        if (open_plugin_get_entry()->lang_id == LANG_OPEN_PLUGIN)
+            key = ID2P(LANG_OPEN_PLUGIN);
+    }
+
+    return ret;
+}
+
+bool open_plugin_ensure_default(const char *key, const char *plugin,
+                                const char *parameter)
+{
+    int opret;
+    struct open_plugin_entry_t *op_entry;
+
+    if (!key || !plugin || !file_exists(plugin))
+        return false;
+
+    opret = open_plugin_load_entry(key);
+    op_entry = open_plugin_get_entry();
+
+    if (opret != OPEN_PLUGIN_NOT_FOUND &&
+        op_entry->path[0] != '\0' &&
+        file_exists(op_entry->path))
+    {
+        return true;
+    }
+
+    return open_plugin_add_path(key, plugin, parameter) != 0;
+}
+
 /* open_plugin_cache_flush()
 * saves the current open_plugin_entry to disk
 */

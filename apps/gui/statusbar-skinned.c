@@ -34,7 +34,6 @@
 #include "viewport.h"
 #include "statusbar.h"
 #include "statusbar-skinned.h"
-#include "debug.h"
 #include "font.h"
 #include "icon.h"
 #include "icons.h"
@@ -54,19 +53,6 @@ static const char* sbs_title[NB_SCREENS];
 static char sbs_persistent_title[NB_SCREENS][80];
 static enum themable_icons sbs_icon[NB_SCREENS];
 static bool sbs_loaded[NB_SCREENS] = { false };
-
-#ifdef SIMULATOR
-static const char *apple2026_dbg_infovp_label(enum screen_type screen,
-                                              OFFSETTYPE(char*) label)
-{
-    struct wps_data *data = skin_get_gwps(CUSTOM_STATUSBAR, screen)->data;
-    if (label == VP_DEFAULT_LABEL)
-        return VP_DEFAULT_LABEL_STRING;
-    if (!label || !data)
-        return "(null)";
-    return SKINOFFSETTOPTR(get_skin_buffer(data), label);
-}
-#endif
 
 void sb_set_info_vp(enum screen_type screen, OFFSETTYPE(char*) label);
 
@@ -149,11 +135,6 @@ static OFFSETTYPE(char*) oldinfovp_label[NB_SCREENS];
 void sb_set_info_vp(enum screen_type screen, OFFSETTYPE(char*) label)
 {
     infovp_label[screen] = label;
-#ifdef SIMULATOR
-    debugf("A26 sb_set_info_vp screen=%d sbs=%s label=%s",
-           screen, global_settings.sbs_file,
-           apple2026_dbg_infovp_label(screen, label));
-#endif
 }
 
 struct viewport *sb_skin_get_info_vp(enum screen_type screen)
@@ -179,22 +160,9 @@ struct viewport *sb_skin_get_info_vp(enum screen_type screen)
         return NULL;
     vp = skin_find_item(label, SKIN_FIND_UIVP, data);
     if (!vp)
-#ifdef SIMULATOR
-    {
-        debugf("A26 sb_skin_get_info_vp screen=%d sbs=%s label=%s found=0",
-               screen, global_settings.sbs_file, label);
         return NULL;
-    }
-#else
-        return NULL;
-#endif
     if (vp->parsed_fontid == 1)
         vp->vp.font = screens[screen].getuifont();
-#ifdef SIMULATOR
-    debugf("A26 sb_skin_get_info_vp screen=%d sbs=%s label=%s found=1 vp=%d,%d %dx%d font=%d hidden=0x%x infovp=%d",
-           screen, global_settings.sbs_file, label, vp->vp.x, vp->vp.y, vp->vp.width, vp->vp.height,
-           vp->vp.font, vp->hidden_flags, vp->is_infovp);
-#endif
     return &vp->vp;
 }
 
@@ -249,7 +217,16 @@ void sb_skin_update(enum screen_type screen, bool force)
         {
             if (force)
                 skin_request_full_update(CUSTOM_STATUSBAR);
-            skin_update(CUSTOM_STATUSBAR, screen, SKIN_REFRESH_NON_STATIC);
+            /* Apple2026 mini-player ownership is mixed:
+             * - title/art/%?C/%Cd/%xd(...) live on static-tag lanes
+             * - playback state, volume, and list chrome live on dynamic lanes
+             * Steady-state SBS updates must therefore include STATIC as well,
+             * otherwise title and album art only appear during transient full redraws.
+             */
+            skin_update(CUSTOM_STATUSBAR, screen,
+                        SKIN_REFRESH_NON_STATIC |
+                        SKIN_REFRESH_STATIC |
+                        SKIN_REFRESH_SCROLL);
         }
         next_update[i] = current_tick + update_delay; /* don't update too often */
     }

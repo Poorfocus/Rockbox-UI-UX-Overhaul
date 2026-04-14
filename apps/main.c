@@ -78,6 +78,7 @@
 #include "bootchart.h"
 #include "logdiskf.h"
 #include "bootdata.h"
+#include "apple2026_shell.h"
 #if defined(HAVE_DEVICEDATA)
 #include "devicedata.h"
 #endif
@@ -239,13 +240,6 @@ int main(void)
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 #define APPLE2026_THEME_VERSION "Update3"
 #define APPLE2026_VERSION_FILE ROCKBOX_DIR "/.apple2026_version"
-
-static bool apple2026_theme_selected(void) INIT_ATTR;
-static bool apple2026_theme_selected(void)
-{
-    return !strcmp(global_settings.wps_file, ROCKBOX_DIR "/wps/Apple2026.wps")
-        || !strcmp(global_settings.sbs_file, ROCKBOX_DIR "/wps/Apple2026.sbs");
-}
 
 static bool apple2026_version_stamp_matches(void) INIT_ATTR;
 static bool apple2026_version_stamp_matches(void)

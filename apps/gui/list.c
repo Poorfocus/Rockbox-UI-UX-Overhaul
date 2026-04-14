@@ -555,6 +555,13 @@ void gui_synclist_set_font_tier(struct gui_synclist * lists,
     lists->font_tier = tier;
 }
 
+void gui_synclist_refresh_layout(struct gui_synclist * lists)
+{
+    list_init_viewports(lists);
+    FOR_NB_SCREENS(i)
+        list_init_item_height(lists, i);
+}
+
 void gui_synclist_set_viewport_defaults(struct viewport *vp,
                                         enum screen_type screen)
 {

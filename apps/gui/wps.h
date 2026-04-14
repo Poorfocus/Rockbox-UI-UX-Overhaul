@@ -50,6 +50,8 @@ void wps_do_action(enum wps_do_action_type, bool updatewps);
 #define wps_do_playpause(update) wps_do_action(WPS_PLAYPAUSE, update)
 
 struct wps_state *get_wps_state(void);
+struct mp3entry *wps_get_current_id3(void);
+struct mp3entry *wps_get_next_id3(void);
 
 /* in milliseconds */
 #define DEFAULT_SKIP_THRESH          3000l

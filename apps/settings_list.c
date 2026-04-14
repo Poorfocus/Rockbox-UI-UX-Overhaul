@@ -2207,7 +2207,7 @@ const struct settings_list settings[] = {
                    ID2P(LANG_OPEN_PLUGIN)
                   ),
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-    /* Apple2026: SELECT from WPS opens Music library (/Music) by default. */
+    /* Apple2026: WPS back fallback only. Primary short-SELECT uses hotkey/LRC. */
     CHOICE_SETTING(0, wps_select_action, LANG_WPS_SELECT_ACTION, 3,
                    "wps select action", "default,database,coverflow,files",
                    NULL, 4,
@@ -2422,12 +2422,21 @@ const struct settings_list settings[] = {
 #endif
 
 #ifdef HAVE_HOTKEY
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    TABLE_SETTING(F_CB_ON_SELECT_ONLY, hotkey_wps,
+        LANG_HOTKEY_WPS, HOTKEY_PLUGIN, "hotkey wps",
+        "off,view playlist,show track info,pitchscreen,open with,delete,bookmark,plugin,bookmark list"
+        ,UNIT_INT, hotkey_formatter, hotkey_getlang, hotkey_callback,9, HOTKEY_OFF,
+        HOTKEY_VIEW_PLAYLIST, HOTKEY_SHOW_TRACK_INFO, HOTKEY_PITCHSCREEN,
+        HOTKEY_OPEN_WITH, HOTKEY_DELETE, HOTKEY_BOOKMARK, HOTKEY_PLUGIN, HOTKEY_BOOKMARK_LIST),
+#else
     TABLE_SETTING(F_CB_ON_SELECT_ONLY, hotkey_wps,
         LANG_HOTKEY_WPS, HOTKEY_VIEW_PLAYLIST, "hotkey wps",
         "off,view playlist,show track info,pitchscreen,open with,delete,bookmark,plugin,bookmark list"
         ,UNIT_INT, hotkey_formatter, hotkey_getlang, hotkey_callback,9, HOTKEY_OFF,
         HOTKEY_VIEW_PLAYLIST, HOTKEY_SHOW_TRACK_INFO, HOTKEY_PITCHSCREEN,
         HOTKEY_OPEN_WITH, HOTKEY_DELETE, HOTKEY_BOOKMARK, HOTKEY_PLUGIN, HOTKEY_BOOKMARK_LIST),
+#endif
     TABLE_SETTING(0, hotkey_tree,
         LANG_HOTKEY_FILE_BROWSER, HOTKEY_OFF, "hotkey tree",
 #ifdef HAVE_TAGCACHE

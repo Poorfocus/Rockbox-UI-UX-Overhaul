@@ -81,7 +81,7 @@ backlight on button hold: normal
 qs top: brightness
 qs left: shuffle
 qs right: repeat
-qs bottom: sleeptimer duration
+qs bottom: brightness
 </main>
 
 <remote>

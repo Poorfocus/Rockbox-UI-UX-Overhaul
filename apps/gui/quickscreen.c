@@ -28,6 +28,7 @@
 #include "misc.h"
 #include "sound.h"
 #include "action.h"
+#include "settings.h"
 #include "settings_list.h"
 #include "lang.h"
 #include "playlist.h"
@@ -40,12 +41,11 @@
 #include "debug.h"
 #include "shortcuts.h"
 #include "appevents.h"
-#if ROCKPOD_APPLE2026_IPOD
 #include "apple2026_shell.h"
-#endif
+#include "gui/skin_engine/skin_engine.h"
 
  /* 1 top, 1 bottom, 2 on either side, 1 for the icons
-  * if enough space, top and bottom have 2 lines */
+ * if enough space, top and bottom have 2 lines */
 #define MIN_LINES 5
 #define MAX_NEEDED_LINES 10
  /* pixels between the 2 center items minimum or between text and icons,
@@ -59,6 +59,69 @@ struct gui_quickscreen
 };
 
 static bool redraw;
+static bool qs_runtime_active;
+static bool qs_runtime_skin_only;
+static enum quickscreen_runtime_mode qs_runtime_mode_state = QS_RUNTIME_GLOBAL;
+static const struct settings_list *qs_runtime_items[QUICKSCREEN_ITEM_COUNT];
+
+static void quickscreen_runtime_reset_state(void)
+{
+    qs_runtime_active = false;
+    qs_runtime_skin_only = false;
+    qs_runtime_mode_state = QS_RUNTIME_GLOBAL;
+
+    for (int i = 0; i < QUICKSCREEN_ITEM_COUNT; i++)
+        qs_runtime_items[i] = NULL;
+}
+
+static bool quickscreen_runtime_begin_apple2026(void)
+{
+    const struct settings_list *brightness =
+        find_setting_by_cfgname("brightness");
+    const struct settings_list *shuffle =
+        find_setting_by_cfgname("shuffle");
+    const struct settings_list *repeat =
+        find_setting_by_cfgname("repeat");
+
+    if (!brightness || !shuffle || !repeat)
+    {
+        quickscreen_runtime_reset_state();
+        return false;
+    }
+
+    qs_runtime_active = true;
+    qs_runtime_skin_only = true;
+    qs_runtime_mode_state = QS_RUNTIME_APPLE2026_FIXED;
+
+    qs_runtime_items[QUICKSCREEN_TOP] = brightness;
+    qs_runtime_items[QUICKSCREEN_LEFT] = shuffle;
+    qs_runtime_items[QUICKSCREEN_RIGHT] = repeat;
+    qs_runtime_items[QUICKSCREEN_BOTTOM] = brightness;
+    return true;
+}
+
+bool quickscreen_runtime_active(void)
+{
+    return qs_runtime_active;
+}
+
+bool quickscreen_runtime_use_skin_only(void)
+{
+    return qs_runtime_active && qs_runtime_skin_only;
+}
+
+enum quickscreen_runtime_mode quickscreen_runtime_mode(void)
+{
+    return qs_runtime_mode_state;
+}
+
+const struct settings_list *quickscreen_runtime_item(enum quickscreen_item item)
+{
+    if (!qs_runtime_active || item < 0 || item >= QUICKSCREEN_ITEM_COUNT)
+        return NULL;
+
+    return qs_runtime_items[item];
+}
 
 static void quickscreen_update_callback(unsigned short id,
                                         void *data, void *userdata)
@@ -445,9 +508,11 @@ static int quickscreen_touchscreen_button(void)
 static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter, bool *usb)
 {
     int button;
+    bool skin_only;
     struct viewport parent[NB_SCREENS];
     struct viewport vps[NB_SCREENS][QUICKSCREEN_ITEM_COUNT];
     struct viewport vp_icons[NB_SCREENS];
+    bool native_viewports_valid[NB_SCREENS] = { false };
     int ret = QUICKSCREEN_OK;
     /* To quit we need either :
      *  - a second press on the button that made us enter
@@ -457,27 +522,34 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
 
     push_current_activity(ACTIVITY_QUICKSCREEN);
     redraw = false;
+    skin_only = apple2026_quicksettings_enabled() &&
+                quickscreen_runtime_use_skin_only();
 
     add_event_ex(GUI_EVENT_NEED_UI_UPDATE, false, quickscreen_update_callback, NULL);
+
+    if (skin_only)
+        skin_request_full_update(CUSTOM_STATUSBAR);
 
     FOR_NB_SCREENS(i)
     {
         screens[i].set_viewport(NULL);
         screens[i].scroll_stop();
-#if ROCKPOD_APPLE2026_IPOD
         viewportmanager_theme_enable(i, true, &parent[i]);
         skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
+
+        if (skin_only)
+        {
+            continue;
+        }
+
+#if ROCKPOD_APPLE2026_IPOD
         quickscreen_set_parent_apple2026(&screens[i], &parent[i]);
+#endif
         quickscreen_fix_viewports(qs, &screens[i], &parent[i], vps[i],
                                   &vp_icons[i]);
         gui_quickscreen_draw(qs, &screens[i], &parent[i], vps[i],
                              &vp_icons[i]);
-#else
-        viewportmanager_theme_enable(i, true, &parent[i]);
-        quickscreen_fix_viewports(qs, &screens[i], &parent[i], vps[i], &vp_icons[i]);
-        gui_quickscreen_draw(qs, &screens[i], &parent[i], vps[i], &vp_icons[i]);
-        skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-#endif
+        native_viewports_valid[i] = true;
     }
     *usb = false;
     /* Announce current selection on entering this screen. This is all
@@ -498,20 +570,29 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
         if (redraw)
         {
             redraw = false;
+            if (skin_only)
+                skin_request_full_update(CUSTOM_STATUSBAR);
             FOR_NB_SCREENS(i)
             {
-#if ROCKPOD_APPLE2026_IPOD
+                if (skin_only)
+                {
+                    screens[i].set_viewport(NULL);
+                    skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
+                    continue;
+                }
+
                 skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
+
+                if (!native_viewports_valid[i])
+                    continue;
+
+#if ROCKPOD_APPLE2026_IPOD
                 quickscreen_set_parent_apple2026(&screens[i], &parent[i]);
+#endif
                 quickscreen_fix_viewports(qs, &screens[i], &parent[i], vps[i],
                                           &vp_icons[i]);
                 gui_quickscreen_draw(qs, &screens[i], &parent[i], vps[i],
                                      &vp_icons[i]);
-#else
-                gui_quickscreen_draw(qs, &screens[i], &parent[i],
-                                     vps[i], &vp_icons[i]);
-                skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-#endif
             }
         }
         button = get_action(CONTEXT_QUICKSCREEN, HZ/5);
@@ -555,6 +636,9 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
             ret |= QUICKSCREEN_GOTO_SHORTCUTS_MENU;
             break;
         }
+        if (button == ACTION_STD_OK)
+            break;
+
         if ((button == button_enter) && can_quit)
             break;
 
@@ -565,8 +649,11 @@ static int gui_syncquickscreen_run(struct gui_quickscreen * qs, int button_enter
     cond_talk_ids_fq(VOICE_OK);
     FOR_NB_SCREENS(i)
     {   /* stop scrolling before exiting */
-        for (int j = 0; j < QUICKSCREEN_ITEM_COUNT; j++)
-            screens[i].scroll_stop_viewport(&vps[i][j]);
+        if (native_viewports_valid[i])
+        {
+            for (int j = 0; j < QUICKSCREEN_ITEM_COUNT; j++)
+                screens[i].scroll_stop_viewport(&vps[i][j]);
+        }
         viewportmanager_theme_undo(i, !(ret & QUICKSCREEN_GOTO_SHORTCUTS_MENU));
     }
 
@@ -585,15 +672,28 @@ int quick_screen_quick(int button_enter)
     struct gui_quickscreen qs;
     bool usb = false;
 
-    for (int i = 0; i < 4; ++i)
-    {
-        qs.items[i] = global_settings.qs_items[i];
+    quickscreen_runtime_reset_state();
 
-        if (!is_setting_quickscreenable(qs.items[i]))
-            qs.items[i] = NULL;
+    if (apple2026_quicksettings_enabled() &&
+        quickscreen_runtime_begin_apple2026())
+    {
+        for (int i = 0; i < QUICKSCREEN_ITEM_COUNT; ++i)
+            qs.items[i] = quickscreen_runtime_item(i);
+    }
+    else
+    {
+        for (int i = 0; i < QUICKSCREEN_ITEM_COUNT; ++i)
+        {
+            qs.items[i] = global_settings.qs_items[i];
+
+            if (!is_setting_quickscreenable(qs.items[i]))
+                qs.items[i] = NULL;
+        }
     }
 
     int ret = gui_syncquickscreen_run(&qs, button_enter, &usb);
+    quickscreen_runtime_reset_state();
+
     if (ret & QUICKSCREEN_CHANGED)
         settings_save();
     if (usb)

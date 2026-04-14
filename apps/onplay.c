@@ -63,6 +63,7 @@
 #include "pitchscreen.h"
 #include "viewport.h"
 #include "pathfuncs.h"
+#include "rbpaths.h"
 #include "shortcuts.h"
 #include "misc.h"
 #ifdef HAVE_DISK_STORAGE
@@ -1326,10 +1327,29 @@ static int hotkey_tree_run_plugin(void *param)
     return ONPLAY_RELOAD_DIR;
 }
 
+static int wps_plugin_status_to_onplay(int ret)
+{
+    switch (ret)
+    {
+        case PLUGIN_OK:
+        case PLUGIN_GOTO_WPS:
+        case PLUGIN_ERROR:
+            return ONPLAY_OK;
+        case PLUGIN_GOTO_ROOT:
+        case PLUGIN_USB_CONNECTED:
+            return ONPLAY_MAINMENU;
+        default:
+            return ONPLAY_OK;
+    }
+}
+
 static int hotkey_wps_run_plugin(void)
 {
-    open_plugin_run(ID2P(LANG_HOTKEY_WPS));
-    return ONPLAY_OK;
+    open_plugin_ensure_default(ID2P(LANG_HOTKEY_WPS),
+                               PLUGIN_APPS_DIR "/lrcplayer.rock", NULL);
+
+    return wps_plugin_status_to_onplay(
+        open_plugin_run_chain(ID2P(LANG_HOTKEY_WPS)));
 }
 #define HOTKEY_FUNC(func, param) {{(void *)func}, param}
 

@@ -18,13 +18,35 @@
 
 ---
 
-Rockpod is a [Rockbox](https://www.rockbox.org) fork for iPod Classic (6th/7th gen, 2007–2014) and iPod Video (5th/5.5th gen, 2005–2006). This branch adds MFi digital audio output, a rewritten Cover Flow, an Apple2026 UI layer, dynamic album art colors support, and SSD-aware power management.
+Rockpod is a [Rockbox](https://www.rockbox.org) fork for iPod Classic (6th/7th gen, 2007-2014) and iPod Video (5th/5.5th gen, 2005-2006). This branch combines MFi digital audio output, a rewritten Cover Flow, an Apple2026 UI layer, dynamic album art colors support, and SSD-aware power management.
 
-Rockpod supports both HDD and iFlash-modded units. Both iPod models share the same 320x240 UI foundation, but this Apple2026 branch should still be treated as a beta / research build rather than a drop-in stable replacement. Cover Flow and the Apple2026 theme work on both models; dynamic colors remain available in the codebase but Apple2026 intentionally ships with them off by default to preserve the white shell. Hardware-specific features like SSD power management and MFi digital audio are iPod Classic only for now.
+Rockpod supports both HDD and iFlash-modded units. Both iPod models share the same 320x240 Apple2026 foundation, but this branch should still be treated as an experimental beta rather than a drop-in stable replacement. Apple2026 intentionally ships with dynamic colors off by default to preserve the neutral shell, and some UI surfaces such as Quick Settings, WPS return routing, and hold/lock behavior are still under active validation.
+
+Beta Update 2 focuses on the Apple2026 release surface: rebuilt Quick Settings, refreshed WPS and mini-player presentation, Lyrics-first short-`Select` behavior on WPS, cleaner menu/navigation handling, PictureFlow return cleanup, and more reliable Apple2026 theme/package staging.
+
+---
+
+## What's New in Beta Update 2
+
+- Rebuilt Apple2026 Quick Settings into a fixed Apple2026 control surface with a centered wheel, top/bottom brightness, left/right shuffle and repeat, and new horizontal brightness/volume bars.
+- Refreshed Now Playing and the mini-player with larger playback-state glyphs, clearer repeat/shuffle presentation, rounded hero-art treatment, a rebuilt mini-player background, and the restored Interpod-style Lossless badge.
+- Changed short WPS `Select` on Apple2026 iPods to use the WPS hotkey path by default, which now seeds Lyrics / LRC instead of Playlist Viewer on a clean profile.
+- Cleaned up Apple2026 navigation with restored chevrons on functional rows, a safer `Extras -> Files` return path, and PictureFlow tracklist return that restores the current song once without pinning the list there permanently.
+- Hardened release staging so Apple2026 builds/install trees consistently carry `Apple2026.cfg`, `.apple2026_version`, and the live Apple2026 WPS/SBS/assets instead of relying on stale extracted payloads.
 
 ---
 
 ## Features
+
+### Apple2026 UI
+
+The current Apple2026 release is more than a theme pass. It includes source-level behavior changes in the 320x240 shell, WPS, navigation flow, and release staging.
+
+- **Apple2026 shell** - neutral-white Library shell, large-title root view, compact headers, separator-based lists, and restored disclosure chevrons on navigable rows like `Music`, `Database`, and `Files`
+- **Fixed Quick Settings surface** - top/bottom brightness, left shuffle, right repeat, wheel volume, and Apple2026-specific overlay rendering instead of the older generic quickscreen body
+- **Lyrics-first WPS flow** - short `Select` on Apple2026 iPods now uses the WPS hotkey path and defaults to Lyrics / LRC on a clean profile; long `Select` still opens the WPS context menu
+- **Refreshed WPS and mini-player** - larger transport/repeat/shuffle glyphs, clearer status ownership, rounded hero-art framing, rebuilt mini-player assets, and cleaner speaker/lossless presentation
+- **Apple2026 release self-heal** - staged builds now carry the live theme cfg, version stamp, and Apple2026 payload so installs are less likely to drift onto stale theme files
 
 ### Digital Audio Output
 > Supported on iPod Classic 6G/7G
@@ -100,15 +122,16 @@ Key files:
 
 ### Cover Flow
 
-Stock PictureFlow shows 3 slides, uses hardcoded colors, and is buried in the plugins menu. Rockpod rewrites the renderer to match Apple's Cover Flow — 7 visible slides w/ uniform tilt angle, custom theme integration, status bar toggle, faster transitions — and promotes it to a top-level menu entry.
+Stock PictureFlow shows 3 slides, uses hardcoded colors, and is buried in the plugins menu. Rockpod rewrites the renderer to match Apple's Cover Flow - 7 visible slides with uniform tilt angle, custom theme integration, faster transitions, and Apple2026-aware return behavior - and promotes it to a top-level menu entry.
 
 - **Theme-aware colors** — slide edges and backgrounds fade toward your theme's background color, not hardcoded black
-- **Status bar support** — integrates with the SBS status bar, showing "Cover Flow" in the title bar. Can be toggled off for full-screen mode
+- **Full-screen by default** — launches without the status bar by default for the Apple2026 presentation, but the PictureFlow setting still allows the status bar to be re-enabled
 - **7 visible slides w/ parallel slide rendering** — matching Apple's Cover Flow projection
 - **Configurable transition speed** — scroll and transition speeds are adjustable in display settings
 - **Text crossfade** — album and artist text fades smoothly between slides instead of snapping
 - **100-slot slide cache** (up from 64), Bayer-ordered dithering, 1-second background polling in SSD mode
 - **Track list** shows title only — no "1.03 -" disc/track number prefixes
+- **WPS return re-entry cleanup** — returning from WPS can reopen the current album track list on the current song once, then gives scrolling control back to the user
 - **No startup delay** — the 2-second "Loading..." splash is eliminated under SSD mode
 
 ---
@@ -185,20 +208,24 @@ Key files: `firmware/target/arm/s5l8702/ipod6g/power-6g.c`, `powermgmt-6g.c`
 
 ---
 
-### Menu
+### Menu and Navigation
 
-All standard Rockbox menu items are available.
+All standard Rockbox menu items remain available, but the Apple2026 branch now changes some of the navigation behavior around them.
 
-|                     Main menu                     |                    Database track list                     |
-| :-----------------------------------------------: | :--------------------------------------------------------: |
-|       Full menu available, shown customized        |         Title only — no disc/track number clutter          |
+- **Full Apple2026 Library shell** — the main menu, Music, Database, playlists, and browser surfaces all use the same 320x240 shell language
+- **Functional-row chevrons restored** — root/extras entries like `Music`, `Database`, and `Files` now render as navigable rows again instead of looking like dead-end items
+- **Cleaner `Extras -> Files` behavior** — exiting the Files browser from Extras now returns to Extras instead of kicking all the way back out
+- **Context-based WPS return work** — Apple2026 continues to route WPS returns from explicit playback context instead of older stale-browser guesses, but this area is still beta and not fully closed
+- **Track-name cleanup** — strict `NN. Title` filename clutter is trimmed where Apple2026 browsing expects title-focused lists
 
 ---
 
-### Improved UI Rendering
+### Release and Packaging Hardening
 
-- **Scroll-to-start flash eliminated** — custom themes with scrolling text in the main menu would flash or flicker when the scroll position reset to the start. Rockpod fixes the viewport rendering order to prevent this, making themed menus render cleanly without visual artifacts.
-- **Track name cleanup** — strips the "01 " numeric prefix that iTunes sync adds to filenames, so tracks display by their actual title across Cover Flow, Database, and WPS
+- **Apple2026 theme cfg generation** — generated theme cfgs now preserve Apple2026 defaults like `dynamic colors: off`, `backlight on button hold: normal`, and the fixed Quick Settings mapping
+- **Version-stamp self-heal** — Apple2026 installs now carry a version stamp so stale theme/config states can be refreshed more predictably
+- **Live payload staging** — simulator installs and hardware zips explicitly stage the current Apple2026 WPS/SBS/assets instead of relying on whatever happened to be left in an extracted tree
+- **Plugin packaging verification** — release packaging now validates that built plugins and key sidecar files actually reached their final packaged paths
 
 ---
 
@@ -215,7 +242,7 @@ The repo includes third-party themes under `themes/`:
 
 | Feature                   | iPod Classic (6G/7G)  | iPod Video (5G/5.5G) |
 | ------------------------- | --------------------- | -------------------- |
-| **MFi digital audio**     | Yes                   | Planned              |
+| **MFi digital audio**     | Yes                   | Alpha / untested     |
 | **Cover Flow**            | Yes                   | Yes                  |
 | **Dynamic Colors**        | Available, off by default in Apple2026 | Available, off by default in Apple2026 |
 | **UI improvements**       | Yes                   | Yes                  |
@@ -229,7 +256,7 @@ The repo includes third-party themes under `themes/`:
 | ----------------------- | --------------------------------------- | ---------------------------------------------- |
 | **MFi digital audio**   | Not supported                           | DACs, speakers, docks — Classic only           |
 | **Dynamic colors**      | Not supported                           | Available; Apple2026 theme defaults it off     |
-| **Cover Flow**          | 3 slides, no status bar, 70-degree tilt | 7 slides, status bar, parallel projection      |
+| **Cover Flow**          | 3 slides, no status bar, 70-degree tilt | 7 slides, full-screen by default, optional status bar |
 | **SSD idle**            | Full power-down, ~530 ms wake           | Clock-gate, <5 ms wake — Classic only          |
 | **Codec power**         | Always on                               | Auto power-down on idle — Classic only         |
 | **USB power**           | Charges from any USB source             | Smart charge gating — Classic only             |
@@ -240,15 +267,20 @@ The repo includes third-party themes under `themes/`:
 ## Installation
 
 > **Prerequisite:** Your iPod must already have the Rockbox bootloader installed. See the [Rockbox installation guide](https://www.rockbox.org/wiki/RockboxUtility) if needed.
+>
+> **Beta install warning:** Back up your existing `.rockbox` folder before installing. For the cleanest results, delete the old `.rockbox` folder on the iPod and replace it fully with the one from the release zip for your model.
 
 1. Download the correct zip from [Releases](https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul/releases/latest):
    - `rockbox-ipod6g.zip` for iPod Classic (6G/7G)
    - `rockbox-ipodvideo-5g.zip` for iPod Video (5G/5.5G)
 2. Connect your iPod in disk mode
-3. Extract the zip to the root of the iPod (creates/updates `.rockbox`)
-4. Eject and reboot
+3. Back up the existing `.rockbox` folder if you want to preserve it
+4. Extract the zip to the root of the iPod and replace `.rockbox`
+5. Eject and reboot
 
 PictureFlow rebuilds its album art cache on first launch after upgrade. This is automatic.
+
+If you use an upgraded battery or iFlash/SSD mod, check `Settings -> System -> Battery` and `Settings -> System -> Disk` after installing so battery estimates and storage power behavior match your hardware.
 
 ---
 
@@ -270,6 +302,8 @@ PictureFlow rebuilds its album art cache on first launch after upgrade. This is 
 
 ## Known Limitations
 
+- **Apple2026 is still a beta UI branch** — Quick Settings, WPS return routing, and some of the newest WPS polish are still under live simulator/hardware validation
+- **Simplified hold/lock behavior** — the older custom Apple2026 notification-style lockscreen overlay is not part of this release; current hold behavior uses the simplified/native path
 - **iPod MFi accessories only** — generic UAC sinks not yet supported (see Roadmap)
 - **16-bit PCM, 44.1 / 48 kHz** — USB Audio Class 1.0 ceiling
 - **iPod Classic and iPod Video only** — untested on other Rockbox targets

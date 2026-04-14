@@ -67,6 +67,7 @@
 #endif
 #include "list.h"
 #include "option_select.h"
+#include "quickscreen.h"
 #include "wps.h"
 
 #define NOINLINE __attribute__ ((noinline))
@@ -546,16 +547,17 @@ static struct mp3entry* get_mp3entry_from_offset(int offset,
                                    struct mp3entry **freeid3, char **filename)
 {
     struct mp3entry* pid3 = NULL;
-    struct wps_state *state = get_wps_state();
-    struct cuesheet *cue = state->id3 ? state->id3->cuesheet : NULL;
+    struct mp3entry *current_id3 = wps_get_current_id3();
+    struct mp3entry *next_id3 = wps_get_next_id3();
+    struct cuesheet *cue = current_id3 ? current_id3->cuesheet : NULL;
     const char *fname = NULL;
 
     if (cue && cue->curr_track_idx + offset < cue->track_count)
-        pid3 = state->id3;
+        pid3 = current_id3;
     else if (offset == 0)
-        pid3 = state->id3;
+        pid3 = current_id3;
     else if (offset == 1)
-        pid3 = state->nid3;
+        pid3 = next_id3;
     else if (audio_status() & AUDIO_STATUS_PLAY)
     {
         /* we had to get a temp id3 entry, fill freeid3 to free later */
@@ -644,8 +646,7 @@ static const char *try_id3_token(struct wps_token *token, int offset,
         goto free_id3_outtext;
     }
 
-    struct wps_state *state = get_wps_state();
-    if (id3 && id3 == state->id3 && id3->cuesheet)
+    if (id3 && id3 == wps_get_current_id3() && id3->cuesheet)
     {
         out_text = get_cuesheetid3_token(token, id3,
                                          token->next?1:offset, buf, buf_size);
@@ -925,6 +926,7 @@ static const char* get_qs_token_value(struct wps_token *token, char *buf, int bu
 {
     enum quickscreen_item item;
     bool data_token = true;
+    const struct settings_list *qs_setting;
 
     switch(token->type)
     {
@@ -959,7 +961,9 @@ static const char* get_qs_token_value(struct wps_token *token, char *buf, int bu
         default:
             return NULL;
     }
-    const struct settings_list *qs_setting = global_settings.qs_items[item];
+
+    qs_setting = quickscreen_runtime_active() ?
+        quickscreen_runtime_item(item) : global_settings.qs_items[item];
 
     if (qs_setting == NULL)
         return "ERR";

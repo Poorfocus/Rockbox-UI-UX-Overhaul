@@ -2442,7 +2442,7 @@ static int lrc_menu(void)
         LRC_MENU_QUIT,
     };
 
-    MENUITEM_STRINGLIST(menu, "Lrcplayer", NULL,
+    MENUITEM_STRINGLIST(menu, "LRC Settings", NULL,
                         "Theme Settings",
                         "Display Settings",
                         "Lyrics Settings",
@@ -2488,7 +2488,7 @@ static int lrc_menu(void)
                 ret = LRC_GOTO_EDITOR;
                 break;
             case LRC_MENU_QUIT:
-                ret = PLUGIN_OK;
+                ret = PLUGIN_GOTO_WPS;
                 break;
             case MENU_ATTACHED_USB:
                 usb = true;
@@ -2540,9 +2540,13 @@ static int handle_button(void)
     switch (button)
     {
         case ACTION_WPS_BROWSE:
+            save_changes();
+            ret = PLUGIN_GOTO_WPS;
+            break;
         case ACTION_WPS_STOP:
             save_changes();
-            ret = PLUGIN_OK;
+            rb->audio_stop();
+            ret = PLUGIN_GOTO_WPS;
             break;
         case ACTION_WPS_PLAY:
             if (AUDIO_STOP && rb->global_status->resume_index != -1)
@@ -2624,11 +2628,16 @@ static int handle_button(void)
         case ACTION_WPS_VOLUP:
             rb->adjust_volume(1);
             break;
+        case ACTION_WPS_QUICKSCREEN:
+            if (playback_control(NULL))
+                ret = PLUGIN_USB_CONNECTED;
+            break;
         case ACTION_WPS_CONTEXT:
-            ret = LRC_GOTO_EDITOR;
+            ret = LRC_GOTO_MENU;
             break;
         case ACTION_WPS_MENU:
-            ret = LRC_GOTO_MENU;
+            save_changes();
+            ret = PLUGIN_GOTO_ROOT;
             break;
         default:
             if(rb->default_event_handler(button) == SYS_USB_CONNECTED)

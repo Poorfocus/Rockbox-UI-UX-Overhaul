@@ -54,6 +54,7 @@
 #include "quickscreen.h"
 #include "shortcuts.h"
 #include "statusbar-skinned.h"
+#include "apple2026_shell.h"
 
 #include "icons.h"
 
@@ -210,7 +211,9 @@ static bool menu_item_is_navigable(int selected_item, void * data)
     if (type == MT_MENU)
         menu = menu->submenus[selected_item];
 
-    return (menu->flags&MENU_TYPE_MASK) == MT_MENU;
+    type = (menu->flags&MENU_TYPE_MASK);
+    /* Apple2026: Show chevrons on all navigable items, including functional submenus and bounds */
+    return (type == MT_MENU || type == MT_FUNCTION_CALL || type == MT_RETURN_VALUE || type == MT_FUNCTION_CALL_W_PARAM);
 }
 
 static char* init_title(const struct menu_item_ex *menu, int *icon,
@@ -556,6 +559,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                     const struct menu_item_ex *context_menu;
                     const struct settings_list *setting =
                             find_setting(temp->variable);
+                    bool fixed_quickscreen = apple2026_quicksettings_enabled();
 
                     MENUITEM_STRINGLIST(settings_op_menu,
                                         ID2P(LANG_ONPLAY_MENU_TITLE), NULL,
@@ -571,13 +575,24 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                                         ID2P(LANG_ADD_CURRENT_TO_FAVES),
                                         ID2P(LANG_ADD_TO_FAVES));
 
+                    MENUITEM_STRINGLIST(fixed_quickscreen_op_menu,
+                                        ID2P(LANG_ONPLAY_MENU_TITLE), NULL,
+                                        ID2P(LANG_RESET_SETTING),
+                                        ID2P(LANG_ADD_CURRENT_TO_FAVES),
+                                        ID2P(LANG_ADD_TO_FAVES));
+
                     /* re-use the strings and desc from the settings_op_menu */
                     static const struct menu_item_ex non_quickscreen_op_menu =
                     {MT_RETURN_ID|MENU_HAS_DESC|MENU_ITEM_COUNT(1),
                     { .strings = settings_op_menu_},
                     {.callback_and_desc = &settings_op_menu__}};
 
-                    if (is_setting_quickscreenable(setting))
+                    if (fixed_quickscreen &&
+                        is_setting_quickscreenable(setting))
+                    {
+                        context_menu = &fixed_quickscreen_op_menu;
+                    }
+                    else if (is_setting_quickscreenable(setting))
                         context_menu = &settings_op_menu;
                     else
                     {
@@ -586,38 +601,64 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 #endif
                     int msel = do_menu(context_menu, NULL, NULL, false);
 
-                    switch (msel)
+                    if (fixed_quickscreen)
                     {
-                        case GO_TO_PREVIOUS:
-                            break;
-                        case 0: /* reset setting */
-                            reset_setting(setting, setting->setting);
-                            settings_save();
-                            settings_apply(false);
-                            break;
+                        switch (msel)
+                        {
+                            case GO_TO_PREVIOUS:
+                                break;
+                            case 0: /* reset setting */
+                                reset_setting(setting, setting->setting);
+                                settings_save();
+                                settings_apply(false);
+                                break;
+                            case 1: /* Add current value to faves */
+                                shortcuts_add(SHORTCUT_SETTING_APPLY,
+                                              (void*)setting);
+                                break;
+                            case 2: /* Add setting to faves */
+                                shortcuts_add(SHORTCUT_SETTING,
+                                              (void*)setting);
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        switch (msel)
+                        {
+                            case GO_TO_PREVIOUS:
+                                break;
+                            case 0: /* reset setting */
+                                reset_setting(setting, setting->setting);
+                                settings_save();
+                                settings_apply(false);
+                                break;
 #ifdef HAVE_QUICKSCREEN
-                        case 1: /* set as top QS item */
-                            global_settings.qs_items[QUICKSCREEN_TOP] = setting;
-                            break;
-                        case 2: /* set as left QS item */
-                            global_settings.qs_items[QUICKSCREEN_LEFT] = setting;
-                            break;
-                        case 3: /* set as bottom QS item */
-                            global_settings.qs_items[QUICKSCREEN_BOTTOM] = setting;
-                            break;
-                        case 4: /* set as right QS item */
-                            global_settings.qs_items[QUICKSCREEN_RIGHT] = setting;
-                            break;
-                        case 5: /* Add current value of setting to faves.
-                                   Same limitation on which can be
-                                   added to the shortcuts menu as the quickscreen */
-                            shortcuts_add(SHORTCUT_SETTING_APPLY, (void*)setting);
-                            break;
-                        case 6: /* Add to faves. Same limitation on which can be
-                                  added to the shortcuts menu as the quickscreen */
-                            shortcuts_add(SHORTCUT_SETTING, (void*)setting);
-                            break;
+                            case 1: /* set as top QS item */
+                                global_settings.qs_items[QUICKSCREEN_TOP] = setting;
+                                break;
+                            case 2: /* set as left QS item */
+                                global_settings.qs_items[QUICKSCREEN_LEFT] = setting;
+                                break;
+                            case 3: /* set as bottom QS item */
+                                global_settings.qs_items[QUICKSCREEN_BOTTOM] = setting;
+                                break;
+                            case 4: /* set as right QS item */
+                                global_settings.qs_items[QUICKSCREEN_RIGHT] = setting;
+                                break;
+                            case 5: /* Add current value of setting to faves.
+                                       Same limitation on which can be
+                                       added to the shortcuts menu as the quickscreen */
+                                shortcuts_add(SHORTCUT_SETTING_APPLY,
+                                              (void*)setting);
+                                break;
+                            case 6: /* Add to faves. Same limitation on which can be
+                                      added to the shortcuts menu as the quickscreen */
+                                shortcuts_add(SHORTCUT_SETTING,
+                                              (void*)setting);
+                                break;
 #endif
+                        }
                     } /* switch(do_menu()) */
                     if (menu->flags & MENU_EXITAFTERTHISMENU)
                         done = true; /* in case onplay menu contains setting */

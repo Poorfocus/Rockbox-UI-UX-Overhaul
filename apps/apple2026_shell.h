@@ -5,6 +5,8 @@
 #ifndef APPS_APPLE2026_SHELL_H
 #define APPS_APPLE2026_SHELL_H
 
+#include <stdbool.h>
+
 #include "config.h"
 #include "lcd.h"
 
@@ -34,9 +36,22 @@
 /* Splash “broken theme” panel fill — calm grouped secondary, not stock gray */
 #define A26_SPLASH_BROKEN_FILL LCD_RGBPACK(242, 242, 246)
 
+bool apple2026_theme_selected(void);
+bool apple2026_quicksettings_enabled(void);
+
 #else
 
 #define ROCKPOD_APPLE2026_IPOD 0
+
+static inline bool apple2026_theme_selected(void)
+{
+    return false;
+}
+
+static inline bool apple2026_quicksettings_enabled(void)
+{
+    return false;
+}
 
 #endif
 

@@ -216,6 +216,7 @@ extern void gui_synclist_set_navigable_callback(struct gui_synclist * lists,
 extern void gui_synclist_set_voice_callback(struct gui_synclist * lists, list_speak_item voice_callback);
 extern void gui_synclist_set_font_tier(struct gui_synclist * lists,
                                        rockpod_list_font_tier_t tier);
+extern void gui_synclist_refresh_layout(struct gui_synclist * lists);
 extern void gui_synclist_set_viewport_defaults(struct viewport *vp, enum screen_type screen);
 #ifdef HAVE_LCD_COLOR
 extern void gui_synclist_set_color_callback(struct gui_synclist * lists, list_get_color color_callback);
