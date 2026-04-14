@@ -7,6 +7,17 @@
   <img src="https://img.shields.io/badge/license-GPLv2-green?style=flat-square" alt="GPLv2">
   <img src="https://img.shields.io/badge/educational%20use-font%20notice-orange?style=flat-square" alt="Educational Use">
 </p>
+## Support the project
+
+<p align="center">
+  If you want to throw a few dollars toward coffee, it genuinely helps me keep working on this project and cover API costs for future beta updates.
+</p>
+
+<p align="center">
+  <a href="https://ko-fi.com/poorfocus">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi">
+  </a>
+</p>
 
 > **Attribution:** This project is a UI/UX research fork of
 > [Rockpod](https://github.com/nuxcodes/rockpod) by nuxcodes, which is itself
